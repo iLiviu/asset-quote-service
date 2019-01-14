@@ -1,0 +1,32 @@
+{
+  "name": "asset-quote-service",
+  "version": "1.0.0",
+  "description": "Retrieve quotes for various tradeable assets",
+  "main": "dist/server.js",
+  "author": "Liviu Iancuta <liviu.iancuta@gmail.com>",
+  "license": "GPL-3.0-or-later",
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run serve",
+    "serve": "node dist/server.js",
+    "watch-node": "nodemon dist/server.js",
+    "watch-ts": "tsc -w"
+  },
+  "devDependencies": {
+    "nodemon": "^1.18.8",
+    "tslint": "^5.11.0",
+    "typescript": "^3.2.2"
+  },
+  "dependencies": {
+    "@types/body-parser": "^1.17.0",
+    "@types/compression": "0.0.36",
+    "@types/express": "^4.16.0",
+    "axios": "^0.18.0",
+    "body-parser": "^1.18.3",
+    "compression": "^1.7.3",
+    "express": "^4.16.4",
+    "express-validator": "^5.3.0",
+    "node-cache": "^4.2.0",
+    "winston": "^3.1.0"
+  }
+}
