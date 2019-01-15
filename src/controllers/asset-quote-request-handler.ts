@@ -235,7 +235,7 @@ quoteProviderService.registerQuoteProvider(binanceQuoteProvider);
 quoteProviderService.registerQuoteProvider(iexQuoteProvider);
 quoteProviderService.registerQuoteProvider(cmeQuoteProvider);
 quoteProviderService.registerQuoteProvider(xstuQuoteProvider);
-quoteProviderService.registerQuoteProvider(xetrQuoteProvider);
+//quoteProviderService.registerQuoteProvider(xetrQuoteProvider);
 quoteProviderService.registerQuoteProvider(bvbQuoteProvider);
 quoteProviderService.registerQuoteProvider(xlonQuoteProvider);
 quoteProviderService.registerQuoteProvider(morningstarQuoteProvider);
