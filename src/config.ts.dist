@@ -1,0 +1,23 @@
+export const CONFIG = {
+  DEFAULT_HTTP_PORT: 8080,
+  DEFAULT_HTTPS_PORT: 8443,
+  DEFAULT_CACHE_TTL :60*60, //1 hour
+  INVALIDASSET_CACHE_TTL: 60*60*12, //12 hours
+  FIXER_API_KEY: '',
+  LOG: {
+    FILENAME: 'error.log',
+    //can be: debug, verbose, info, warn, error
+    LEVEL: 'error',
+  },
+  SSL: {
+    /**
+     * enable/disable SSL support. 
+    */
+    ENABLE: true, 
+    PRIVATEKEY_PATH: '/path/to/privkey.pem',
+    CERT_PATH: '/path/to/fullchain.pem',
+    CA_PATH: '/path/to/chain.pem',
+
+
+  }
+}
