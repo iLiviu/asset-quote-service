@@ -23,6 +23,10 @@ export class FixerQuoteProvider implements QuoteProvider {
   private cache: NodeCache;
 
   constructor() {
+    if (!CONFIG.FIXER_API_KEY) {
+      throw new Error("Fixer API key not set!");
+    }
+
     //we store the quotes for in cache for 90 minutes to avoid hitting api limit
     this.cache = new NodeCache({ stdTTL: 90 });
   }
@@ -50,6 +54,7 @@ export class FixerQuoteProvider implements QuoteProvider {
 
 
   async getForexQuotes(symbols: string[]): Promise<Asset[]> {
+
     let obj: FixerAPIResponse;
     obj = this.cache.get(FOREX_CACHE_KEY);
     if (!obj) {
