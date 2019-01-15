@@ -5,7 +5,11 @@ import logger from "./logger";
 import { CONFIG } from "./config";
 
 
-
+console.log(`AssetQuoteService Copyright (C) 2019  Liviu T Iancuta <liviu.iancuta@gmail.com>.
+  This program comes with ABSOLUTELY NO WARRANTY. This program is free software:
+  you can redistribute it and/or modify it under the terms of the GNU General 
+  Public License as published by the Free Software Foundation, either version 3
+  of the License, or (at your option) any later version.`);
 
 const server = app.listen(app.get("port"), () => {
   logger.info(`HTTP Server is listening on port ${app.get("port")}!`);
