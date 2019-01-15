@@ -2,6 +2,14 @@
   "name": "asset-quote-service",
   "version": "1.0.0",
   "description": "Retrieve quotes for various tradeable assets",
+  "homepage": "https://github.com/iLiviu/asset-quote-service#readme",
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/iLiviu/asset-quote-service"
+  },
+  "bugs": {
+    "url": "https://github.com/iLiviu/asset-quote-service/issues"
+  },
   "main": "dist/server.js",
   "author": "Liviu Iancuta <liviu.iancuta@gmail.com>",
   "license": "GPL-3.0-or-later",
