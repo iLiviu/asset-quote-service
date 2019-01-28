@@ -138,6 +138,11 @@ export class CMEQuoteProvider implements QuoteProvider {
     return result;
   }
 
+  getMutualFundQuotes(symbols: string[]): Promise<Asset[]> {
+    throw new AssetTypeNotSupportedError(AssetType.CRYPTOCURRENCY);
+  }
+
+
   private async getCommodityQuote(symbol: string): Promise<Asset> {
     let userSymbol = symbol;
     if (symbol.match(/^X[A-Z]{2}$/i)) {

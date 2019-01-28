@@ -28,6 +28,10 @@ export class XETRQuoteProvider implements QuoteProvider {
     throw new AssetTypeNotSupportedError(AssetType.COMMODITY);
   }
 
+  getMutualFundQuotes(symbols: string[]): Promise<Asset[]> {
+    throw new AssetTypeNotSupportedError(AssetType.CRYPTOCURRENCY);
+  }
+
   private async getAssetQuotes(symbols: string[],assetsType:AssetType): Promise<Asset[]> {
     let promises: Promise<Asset>[] = [];
     for (let symbol of symbols) {

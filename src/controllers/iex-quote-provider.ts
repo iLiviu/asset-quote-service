@@ -81,6 +81,10 @@ export class IEXQuoteProvider implements QuoteProvider {
 
   }
 
+  getMutualFundQuotes(symbols: string[]): Promise<Asset[]> {
+    throw new AssetTypeNotSupportedError(AssetType.CRYPTOCURRENCY);
+  }
+
   getSupportedMarkets(): string[] {
     return ['ARCX', 'XNGS', 'EDGX', 'BATS', 'EDGA', 'XCHI', 'BATY', 'XPHL', 'XNYS', 'XBOS', 'IEXG', 'XCIS', 'XASE', 'XNAS','XCBO'];
   }

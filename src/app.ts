@@ -36,6 +36,7 @@ app.post('/crypto', quoteHandler.cryptocurrencyRequest);
 app.post('/commodity', quoteHandler.commodityRequest);
 app.post('/bond', quoteHandler.bondRequest);
 app.post('/forex', quoteHandler.forexRequest);
+app.post('/mutualfund', quoteHandler.mutualFundRequest);
 
 app.use(function(err:any, req:any, res:any, next:any) {
   // error handling logic

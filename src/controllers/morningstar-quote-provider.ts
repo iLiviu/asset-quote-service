@@ -1,14 +1,14 @@
 import { QuoteProvider, AssetType, Asset, AssetTypeNotSupportedError, parseSymbol } from "./quote-provider";
 import axios from "axios";
 
-/**
- * Provide bond and stock quotes from Morningstar
- */
 interface MorningstarQuote {
   lastPrice: number;
   currencyCode: string;
 }
 
+/**
+ * Provide bond and stock quotes from Morningstar
+ */
 export class MorningstarQuoteProvider implements QuoteProvider {
 
   async getStockQuotes(symbols: string[]): Promise<Asset[]> {
@@ -25,6 +25,10 @@ export class MorningstarQuoteProvider implements QuoteProvider {
   }
 
   getCryptoCurrencyQuotes(symbols: string[]): Promise<Asset[]> {
+    throw new AssetTypeNotSupportedError(AssetType.CRYPTOCURRENCY);
+  }
+
+  getMutualFundQuotes(symbols: string[]): Promise<Asset[]> {
     throw new AssetTypeNotSupportedError(AssetType.CRYPTOCURRENCY);
   }
 

@@ -52,6 +52,10 @@ export class FixerQuoteProvider implements QuoteProvider {
     return [''];
   }
 
+  getMutualFundQuotes(symbols: string[]): Promise<Asset[]> {
+    throw new AssetTypeNotSupportedError(AssetType.CRYPTOCURRENCY);
+  }
+
 
   async getForexQuotes(symbols: string[]): Promise<Asset[]> {
 

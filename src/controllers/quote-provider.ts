@@ -13,6 +13,7 @@ export enum AssetType {
   COMMODITY,
   CRYPTOCURRENCY,
   FOREX,
+  MUTUAL_FUND,
 }
 
 export interface SymbolParts {
@@ -64,6 +65,7 @@ export interface QuoteProvider {
   getCommodityQuotes(symbols: string[]): Promise<Asset[]>;
   getCryptoCurrencyQuotes(symbols: string[]): Promise<Asset[]>;
   getForexQuotes(symbols: string[]): Promise<Asset[]>;
+  getMutualFundQuotes(symbols: string[]): Promise<Asset[]>;
   getSupportedMarkets(): string[];
   getId(): string;
 }

@@ -14,6 +14,7 @@ import { CONFIG } from '../config';
 import { fixerQuoteProvider } from './fixer-quote-provider';
 import logger from '../logger';
 import { Dictionary } from '../models/dictionary';
+import { ftQuoteProvider } from './ft-quote-provider';
 
 
 
@@ -73,6 +74,9 @@ export class AssetQuoteRequestHandler {
     this.handleRequest(AssetType.FOREX, req, res);
   }
 
+  mutualFundRequest = (req: Request, res: Response) => {
+    this.handleRequest(AssetType.MUTUAL_FUND, req, res);
+  }
 
 
   /**
@@ -121,6 +125,8 @@ export class AssetQuoteRequestHandler {
             quoteProvider = binanceQuoteProvider;
           } else if (assetType === AssetType.FOREX) {
             quoteProvider = fixerQuoteProvider;
+          } else if (assetType === AssetType.MUTUAL_FUND) {
+            quoteProvider = ftQuoteProvider;
           } else {
             throw new AssetTypeNotSupportedError(assetType);
           }
@@ -172,6 +178,8 @@ export class AssetQuoteRequestHandler {
         promise = symbolsMap.provider.getCommodityQuotes(symbols)
       } else if (assetType === AssetType.FOREX) {
         promise = symbolsMap.provider.getForexQuotes(symbols)
+      } else if (assetType === AssetType.MUTUAL_FUND) {
+        promise = symbolsMap.provider.getMutualFundQuotes(symbols)
       } else {
         throw new AssetTypeNotSupportedError(assetType);
       }
@@ -239,4 +247,5 @@ quoteProviderService.registerQuoteProvider(xstuQuoteProvider);
 quoteProviderService.registerQuoteProvider(bvbQuoteProvider);
 quoteProviderService.registerQuoteProvider(xlonQuoteProvider);
 quoteProviderService.registerQuoteProvider(morningstarQuoteProvider);
+quoteProviderService.registerQuoteProvider(ftQuoteProvider);
 

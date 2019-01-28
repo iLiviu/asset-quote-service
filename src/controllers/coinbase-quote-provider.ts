@@ -77,6 +77,9 @@ export class CoinbaseQuoteProvider implements QuoteProvider {
 
   }
 
+  getMutualFundQuotes(symbols: string[]): Promise<Asset[]> {
+    throw new AssetTypeNotSupportedError(AssetType.CRYPTOCURRENCY);
+  }
 
   getSupportedMarkets(): string[] {
     return ['COINBASE', 'GDAX'];

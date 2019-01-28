@@ -30,6 +30,9 @@ export class BVBQuoteProvider implements QuoteProvider {
     throw new AssetTypeNotSupportedError(AssetType.COMMODITY);
   }
 
+  getMutualFundQuotes(symbols: string[]): Promise<Asset[]> {
+    throw new AssetTypeNotSupportedError(AssetType.CRYPTOCURRENCY);
+  }
 
   private getInputValue(name: string, htmlBody: string): string {
     let pattern = new RegExp('name="' + name + '"[^>]+value="([^"]+)');

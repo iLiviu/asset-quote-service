@@ -1,5 +1,5 @@
 # Asset Quote Service
-Asset Quote Service gets the prices for a list of specified assets. It currently returns prices for stocks, bonds, cryptocurrencies and forex pairs.
+Asset Quote Service gets the prices for a list of specified assets. It currently returns prices for stocks, bonds, mutual funds, cryptocurrencies and forex pairs.
 
 
 ## Supported exchanges
@@ -13,6 +13,7 @@ Below is a list of all implemented providers and the markets that they support
 | Bursa de Valori Bucuresti | Romanian Stocks & Bonds |
 | CME                       | Commodity futures       |
 | Coinbase                  | Cryptocurrencies        |
+| Financial Times           | Mutual Funds            |
 | Fixer.io                  | Forex rates             |
 | IEX                       | US Stocks               |
 | London Stock Exchange     | XLON Stocks             |
@@ -89,22 +90,6 @@ Example:
 
 The following endpoints are available:
 
-### Stocks
-Get quotes for stocks. Symbol format is `<SYMBOL>` or `<MIC>:<SYMBOL>`, where MIC is the market identifier code for the exchange where the symbol is traded. Example: `XETR:EUNL`
-```
-POST /stock
-```
-### Cryptocurrencies
-Get quotes for cryptocurrencies. Symbol format is `<SYMBOL>` or `<EXCHANGE>:<SYMBOL>`, where EXCHANGE can be one of the following: `IEX`, `COINBASE` or `BINANCE`
-```
-POST /crypto
-```
-
-### Commodities
-Get quotes for commodities. Currently supporting Aluminium(`AL`), Gold(`AU`), Platinum(`PT`), Silver(`AG`), Copper(`CU`), Palladium(`PD`), Corn(`ZC`), Soybean(`ZS`), Live Cattle(`LE`), Wheat(`ZW`), Crude Oil(`CL`), Brent Oil(`BZ`), Gasoline(`RB`), Natural Gas(`NG`)
-```
-POST /commodity
-``` 
 
 ### Bonds
 Get quotes for bonds. You need to provide the ISIN as symbol.
@@ -112,10 +97,32 @@ Get quotes for bonds. You need to provide the ISIN as symbol.
 POST /bond
 ``` 
 
+### Commodities
+Get quotes for commodities. Currently supporting Aluminium(`AL`), Gold(`AU`), Platinum(`PT`), Silver(`AG`), Copper(`CU`), Palladium(`PD`), Corn(`ZC`), Soybean(`ZS`), Live Cattle(`LE`), Wheat(`ZW`), Crude Oil(`CL`), Brent Oil(`BZ`), Gasoline(`RB`), Natural Gas(`NG`)
+```
+POST /commodity
+``` 
+
+### Cryptocurrencies
+Get quotes for cryptocurrencies. Symbol format is `<SYMBOL>` or `<EXCHANGE>:<SYMBOL>`, where EXCHANGE can be one of the following: `IEX`, `COINBASE` or `BINANCE`
+```
+POST /crypto
+```
+
 ### Forex
 Get forex rates. Format for a currency pair is <from_currency_code><to_currency_code>. Example: `EURUSD`
 ```
 POST /forex
 ```
 
+### Mutual Funds
+Get quotes for mutual funds. You need to provide the ISIN as symbol.
+```
+POST /mutualfund
+``` 
 
+### Stocks
+Get quotes for stocks. Symbol format is `<SYMBOL>` or `<MIC>:<SYMBOL>`, where MIC is the market identifier code for the exchange where the symbol is traded. Example: `XETR:EUNL`
+```
+POST /stock
+```

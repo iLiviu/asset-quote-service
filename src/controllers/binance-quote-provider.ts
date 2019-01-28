@@ -61,6 +61,9 @@ export class BinanceQuoteProvider implements QuoteProvider {
 
   }
 
+  getMutualFundQuotes(symbols: string[]): Promise<Asset[]> {
+    throw new AssetTypeNotSupportedError(AssetType.CRYPTOCURRENCY);
+  }
 
   getSupportedMarkets(): string[] {
     return ['BINANCE'];
