@@ -1,9 +1,41 @@
-import { QuoteProvider, AssetType, Asset, AssetTypeNotSupportedError, parseSymbol } from "./quote-provider";
+import { QuoteProvider, AssetType, Asset, AssetTypeNotSupportedError, parseSymbol, isValidISIN } from "./quote-provider";
 import axios from "axios";
 
 interface MorningstarQuote {
   lastPrice: number;
   currencyCode: string;
+}
+
+interface MSecurityDetails {
+  /**
+   * exchange code
+   */
+  LS01Z: string; 
+  /**
+   * short symbol
+   */
+  OS001: string; 
+  /**
+   * title
+   */
+  OS63I: string; 
+  /**
+   * currency
+   */
+  OS05M: string; 
+}
+interface MSearchResult {
+  r: MSecurityDetails[];
+}
+
+interface MApiResult {
+  code: number;
+  msg: string;
+}
+
+interface MorningstarSearchResponse {
+  result: MApiResult,
+  m: MSearchResult[]
 }
 
 /**
@@ -53,6 +85,17 @@ export class MorningstarQuoteProvider implements QuoteProvider {
 
   private async getAssetQuote(fullSymbol: string): Promise<Asset> {
     let symbolParts = parseSymbol(fullSymbol);
+    if (isValidISIN(symbolParts.shortSymbol)) {
+      symbolParts.marketCode = '';
+      let response =  await axios.get(`https://www.morningstar.com/api/v2/search/securities/5/usquote-v2/?q=${symbolParts.shortSymbol}`);
+      let data: MorningstarSearchResponse = response.data;
+      if (data.result.code === 0 && data.m.length > 0 && data.m[0].r.length > 0) {
+        let details = data.m[0].r[0];
+        symbolParts.marketCode = details.LS01Z;
+        symbolParts.shortSymbol = details.OS001;
+      }
+      console.log(symbolParts);
+    }
     if (symbolParts.marketCode !== '') {
       let response = await axios.get(`https://www.morningstar.com/stocks/${symbolParts.marketCode}/${symbolParts.shortSymbol}/quote.html`);
       let htmlBody = response.data;

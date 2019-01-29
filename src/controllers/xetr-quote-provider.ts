@@ -46,7 +46,7 @@ export class XETRQuoteProvider implements QuoteProvider {
     let symbolParts = parseSymbol(fullSymbol);
     let response = await axios.get('http://en.boerse-frankfurt.de/searchresults?_search=' + symbolParts.shortSymbol);
     let htmlBody = response.data;
-    let currency = 'USD';
+    let currency = 'EUR';
     //extract quote
     let regex = / field="last"[^>]+jsvalue="([0-9.]+)/g;
     let match = regex.exec(htmlBody);
