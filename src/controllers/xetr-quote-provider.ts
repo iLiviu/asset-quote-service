@@ -94,7 +94,7 @@ export class XETRQuoteProvider implements QuoteProvider {
   }
 
   getSupportedMarkets(): string[] {
-    return ['XETR'];
+    return [];
   }
 
   getId(): string {

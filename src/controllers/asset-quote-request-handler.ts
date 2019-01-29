@@ -1,7 +1,7 @@
 import NodeCache from 'node-cache';
 import { Request, Response } from 'express';
 import { iexQuoteProvider } from './iex-quote-provider';
-import { quoteProviderService, QuoteProvider, AssetType, Asset, AssetTypeNotSupportedError, parseSymbol, QuoteError, isValidMIC } from './quote-provider';
+import { quoteProviderService, QuoteProvider, AssetType, Asset, AssetTypeNotSupportedError, parseSymbol, QuoteError, isValidMIC, isValidISIN } from './quote-provider';
 import { binanceQuoteProvider } from './binance-quote-provider';
 import { coinbaseQuoteProvider } from './coinbase-quote-provider';
 import { cmeQuoteProvider } from './cme-quote-provider';
@@ -112,7 +112,9 @@ export class AssetQuoteRequestHandler {
         if (!quoteProvider) {
           //no supported market provided, so use default quote provider for asset type
           if (assetType === AssetType.STOCK) {
-            if (isValidMIC(symbolParts.marketCode)) {
+            if (isValidISIN(symbolParts.shortSymbol)) {
+              quoteProvider = xetrQuoteProvider;
+            } else if (isValidMIC(symbolParts.marketCode)) {
               quoteProvider = morningstarQuoteProvider;
             } else {
               quoteProvider = iexQuoteProvider;
@@ -243,7 +245,7 @@ quoteProviderService.registerQuoteProvider(binanceQuoteProvider);
 quoteProviderService.registerQuoteProvider(iexQuoteProvider);
 quoteProviderService.registerQuoteProvider(cmeQuoteProvider);
 quoteProviderService.registerQuoteProvider(xstuQuoteProvider);
-//quoteProviderService.registerQuoteProvider(xetrQuoteProvider);
+quoteProviderService.registerQuoteProvider(xetrQuoteProvider);
 quoteProviderService.registerQuoteProvider(bvbQuoteProvider);
 quoteProviderService.registerQuoteProvider(xlonQuoteProvider);
 quoteProviderService.registerQuoteProvider(morningstarQuoteProvider);

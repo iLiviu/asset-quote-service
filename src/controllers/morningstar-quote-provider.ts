@@ -94,9 +94,8 @@ export class MorningstarQuoteProvider implements QuoteProvider {
         symbolParts.marketCode = details.LS01Z;
         symbolParts.shortSymbol = details.OS001;
       }
-      console.log(symbolParts);
     }
-    if (symbolParts.marketCode !== '') {
+    if (symbolParts.marketCode !== '' && symbolParts.shortSymbol !== '') {
       let response = await axios.get(`https://www.morningstar.com/stocks/${symbolParts.marketCode}/${symbolParts.shortSymbol}/quote.html`);
       let htmlBody = response.data;
       //extract quote
