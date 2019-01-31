@@ -1,5 +1,6 @@
 import { QuoteProvider, AssetType, Asset, AssetTypeNotSupportedError, parseSymbol, isValidISIN } from "./quote-provider";
 import axios from "axios";
+import logger from '../logger';
 
 interface XLONSearchQuote {
   title: string;
@@ -50,12 +51,21 @@ export class XLONQuoteProvider implements QuoteProvider {
    * Get quote for an asset. Checks format of symbol to go to appropriate page
    * @param fullSymbol symbol can be either a ticker or ISIN
    */
-  private getAssetQuote(fullSymbol: string): Promise<Asset> {
-    let symbolParts = parseSymbol(fullSymbol);
-    if (isValidISIN(symbolParts.shortSymbol)) {
-      return this.getISINQuote(fullSymbol);
-    } else {
-      return this.getShortSymbolQuote(fullSymbol);
+  private async getAssetQuote(fullSymbol: string): Promise<Asset> {
+    try {
+      let symbolParts = parseSymbol(fullSymbol);
+      if (isValidISIN(symbolParts.shortSymbol)) {
+        return await this.getISINQuote(fullSymbol);
+      } else {
+        return await this.getShortSymbolQuote(fullSymbol);
+      }
+    } catch (err) {
+        logger.error(`Could not get quote for symbol "${fullSymbol}": ${err}`);
+        return {
+          currency: null,
+          price: null,
+          symbol: fullSymbol,
+        };      
     }
   }
 
@@ -104,7 +114,7 @@ export class XLONQuoteProvider implements QuoteProvider {
     let response = await axios.get('https://www.londonstockexchange.com/exchange/searchengine/all/json/search.html?q=' + symbolParts.shortSymbol);
     let quotes: XLONSearchQuote[] = response.data.quotes;
     let xlonSymbol = '';
-    if (quotes.length>0) {
+    if (quotes.length > 0) {
       xlonSymbol = quotes[0].symbol1;
     }
     if (xlonSymbol) {

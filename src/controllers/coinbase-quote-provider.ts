@@ -1,5 +1,6 @@
 import { QuoteProvider, AssetType, Asset, AssetTypeNotSupportedError, parseSymbol } from "./quote-provider";
 import axios from "axios";
+import logger from '../logger';
 
 interface CoinbaseQuote {
   trade_id: number;
@@ -59,21 +60,24 @@ export class CoinbaseQuoteProvider implements QuoteProvider {
         symbol = symbol + '-USD';
       }
 
-      let response = await axios.get('https://api.pro.coinbase.com/products/' + symbol + '/ticker');
-      let quote: CoinbaseQuote = response.data;
-      return {
-        price: +quote.price,
-        symbol: fullSymbol,
-        currency: currency,
-      };
-    } else {
-      // symbol not supported
-      return {
-        price: null,
-        symbol: fullSymbol,
-        currency: null,
-      };
+      try {
+        let response = await axios.get('https://api.pro.coinbase.com/products/' + symbol + '/ticker');
+        let quote: CoinbaseQuote = response.data;
+        return {
+          price: +quote.price,
+          symbol: fullSymbol,
+          currency: currency,
+        };
+      } catch (err) {
+        logger.error(`Could not get quote for symbol "${fullSymbol}": ${err}`);
+      }
     }
+
+    return {
+      price: null,
+      symbol: fullSymbol,
+      currency: null,
+    };
 
   }
 

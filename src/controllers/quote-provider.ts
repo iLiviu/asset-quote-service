@@ -58,6 +58,20 @@ export class SymbolNotSupportedError extends QuoteError {
   }
 }
 
+export class SymbolQuoteError extends QuoteError {
+  private _symbol:string;
+  constructor(symbol:string) {
+    super("Could not get quote for symbol: "+symbol);
+    this._symbol = symbol;
+    // Set the prototype explicitly.
+    Object.setPrototypeOf(this, SymbolQuoteError.prototype);
+  }
+
+  get symbol() {
+    return this._symbol;
+  }
+}
+
 
 export interface QuoteProvider {
   getStockQuotes(symbols: string[]): Promise<Asset[]>;

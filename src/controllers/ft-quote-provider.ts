@@ -1,5 +1,6 @@
 import { QuoteProvider, AssetType, Asset, AssetTypeNotSupportedError, parseSymbol } from "./quote-provider";
 import axios from "axios";
+import logger from '../logger';
 
 
 
@@ -50,30 +51,35 @@ export class FTQuoteProvider implements QuoteProvider {
 
   private async getAssetQuote(fullSymbol: string): Promise<Asset> {
     let symbolParts = parseSymbol(fullSymbol);
-    let response = await axios.get('https://markets.ft.com/data/funds/tearsheet/summary?s=' + symbolParts.shortSymbol);
-    let htmlBody = response.data;
-    //extract quote
-    let regex = /overview__quote__bar[^>]*><li><span[^>]*>Price(\s*\(([^\)]+))?[^<]*<\/span><span[^>]*>([0-9.,]+)/g;
-    let match = regex.exec(htmlBody);
-    let price: number = null;
-    let currency = 'USD';
-    if (match) {
-      price = +(match[3].replace(',', ''));
-      currency = match[2];
+    try {
+      let response = await axios.get('https://markets.ft.com/data/funds/tearsheet/summary?s=' + symbolParts.shortSymbol);
+      let htmlBody = response.data;
+      //extract quote
+      let regex = /overview__quote__bar[^>]*><li><span[^>]*>Price(\s*\(([^\)]+))?[^<]*<\/span><span[^>]*>([0-9.,]+)/g;
+      let match = regex.exec(htmlBody);
+      let price: number = null;
+      let currency = 'USD';
+      if (match) {
+        price = +(match[3].replace(',', ''));
+        currency = match[2];
+      }
+      if (price) {
+        return {
+          currency: currency,
+          price: price,
+          symbol: fullSymbol,
+        };
+      }
+    } catch (err) {
+      logger.error(`Could not get quote for symbol "${fullSymbol}": ${err}`);
     }
-    if (price) {
-      return {
-        currency: currency,
-        price: price,
-        symbol: fullSymbol,
-      };
-    } else {
-      return {
-        currency: null,
-        price: null,
-        symbol: fullSymbol,
-      };
-    }
+
+    return {
+      currency: null,
+      price: null,
+      symbol: fullSymbol,
+    };
+
   }
 
   getId(): string {
