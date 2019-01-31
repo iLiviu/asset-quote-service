@@ -120,7 +120,7 @@ export class AssetQuoteRequestHandler {
               quoteProvider = iexQuoteProvider;
             }
           } else if (assetType === AssetType.BOND) {
-            quoteProvider = xstuQuoteProvider;
+            quoteProvider = xetrQuoteProvider;
           } else if (assetType === AssetType.COMMODITY) {
             quoteProvider = cmeQuoteProvider;
           } else if (assetType === AssetType.CRYPTOCURRENCY) {
@@ -244,7 +244,7 @@ quoteProviderService.registerQuoteProvider(coinbaseQuoteProvider);
 quoteProviderService.registerQuoteProvider(binanceQuoteProvider);
 quoteProviderService.registerQuoteProvider(iexQuoteProvider);
 quoteProviderService.registerQuoteProvider(cmeQuoteProvider);
-quoteProviderService.registerQuoteProvider(xstuQuoteProvider);
+//quoteProviderService.registerQuoteProvider(xstuQuoteProvider);
 quoteProviderService.registerQuoteProvider(xetrQuoteProvider);
 quoteProviderService.registerQuoteProvider(bvbQuoteProvider);
 quoteProviderService.registerQuoteProvider(xlonQuoteProvider);
