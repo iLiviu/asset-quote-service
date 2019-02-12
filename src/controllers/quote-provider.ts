@@ -1,4 +1,4 @@
-import { Dictionary } from "../models/dictionary";
+import { Dictionary } from '../models/dictionary';
 
 export class Asset {
   symbol: string;
@@ -18,22 +18,22 @@ export enum AssetType {
 
 export interface SymbolParts {
   marketCode: string;
-  shortSymbol:string;
+  shortSymbol: string;
 
 }
 
 export class QuoteError extends Error {
-  constructor(message?:string) {
+  constructor(message?: string) {
     super(message);
     // Set the prototype explicitly.
     Object.setPrototypeOf(this, QuoteError.prototype);
-  }  
+  }
 }
 
 export class AssetTypeNotSupportedError extends QuoteError {
-  private _assetType:AssetType;
-  constructor(assetType:AssetType) {
-    super("Asset type not supported: "+assetType);
+  private _assetType: AssetType;
+  constructor(assetType: AssetType) {
+    super('Asset type not supported: ' + assetType);
     this._assetType = assetType;
     // Set the prototype explicitly.
     Object.setPrototypeOf(this, AssetTypeNotSupportedError.prototype);
@@ -45,9 +45,9 @@ export class AssetTypeNotSupportedError extends QuoteError {
 }
 
 export class SymbolNotSupportedError extends QuoteError {
-  private _symbol:string;
-  constructor(symbol:string) {
-    super("Symbol not supported: "+symbol);
+  private _symbol: string;
+  constructor(symbol: string) {
+    super('Symbol not supported: ' + symbol);
     this._symbol = symbol;
     // Set the prototype explicitly.
     Object.setPrototypeOf(this, SymbolNotSupportedError.prototype);
@@ -59,9 +59,9 @@ export class SymbolNotSupportedError extends QuoteError {
 }
 
 export class SymbolQuoteError extends QuoteError {
-  private _symbol:string;
-  constructor(symbol:string) {
-    super("Could not get quote for symbol: "+symbol);
+  private _symbol: string;
+  constructor(symbol: string) {
+    super('Could not get quote for symbol: ' + symbol);
     this._symbol = symbol;
     // Set the prototype explicitly.
     Object.setPrototypeOf(this, SymbolQuoteError.prototype);
@@ -71,7 +71,6 @@ export class SymbolQuoteError extends QuoteError {
     return this._symbol;
   }
 }
-
 
 export interface QuoteProvider {
   getStockQuotes(symbols: string[]): Promise<Asset[]>;
@@ -93,10 +92,10 @@ class QuoteProviderService {
    * @param provider QuoteProvider instance to register
    */
   registerQuoteProvider(provider: QuoteProvider) {
-    if (this.registeredQuoteProviders.findIndex(item => item.getId() === provider.getId()) < 0) {
+    if (this.registeredQuoteProviders.findIndex((item) => item.getId() === provider.getId()) < 0) {
       this.registeredQuoteProviders.push(provider);
-      let markets = provider.getSupportedMarkets();
-      for (let market of markets) {
+      const markets = provider.getSupportedMarkets();
+      for (const market of markets) {
         this.supportedMarkets[market] = provider;
       }
     }
@@ -107,51 +106,47 @@ class QuoteProviderService {
    * @param market market id
    * @return appropriate QuoteProvider for market, or null if market is not supported
    */
-  getQuoteProvider(market:string):QuoteProvider {
+  getQuoteProvider(market: string): QuoteProvider {
     return this.supportedMarkets[market];
   }
 }
 
-export function parseSymbol(fullSymbol:string):SymbolParts {
-    let symbolParts = fullSymbol.split(':');
-    let marketId: string = (symbolParts.length > 1) ? symbolParts[0] : '';
-    let shortSymbol: string = (symbolParts.length > 1) ? symbolParts[1] : fullSymbol;
-    return {
-      marketCode: marketId,
-      shortSymbol: shortSymbol,
-    }
+export function parseSymbol(fullSymbol: string): SymbolParts {
+  const symbolParts = fullSymbol.split(':');
+  const marketId: string = (symbolParts.length > 1) ? symbolParts[0] : '';
+  const shortSymbol: string = (symbolParts.length > 1) ? symbolParts[1] : fullSymbol;
+  return {
+    marketCode: marketId,
+    shortSymbol,
+  };
 }
 
-export function getShortSymbols(fullSymbols:string[]):string[] {
-  let result:string[] = [];
-  for (let fullSymbol of fullSymbols) {
-    let symbolParts = parseSymbol(fullSymbol);
+export function getShortSymbols(fullSymbols: string[]): string[] {
+  const result: string[] = [];
+  for (const fullSymbol of fullSymbols) {
+    const symbolParts = parseSymbol(fullSymbol);
     result.push(symbolParts.shortSymbol);
   }
   return result;
 }
 
-export function mapStringKeyValues(keys:string[],values:string[]):Dictionary<string> {
-  let result: Dictionary<string> = {};
+export function mapStringKeyValues(keys: string[], values: string[]): Dictionary<string> {
+  const result: Dictionary<string> = {};
   if (keys.length !== values.length) {
-    throw new Error("Array lengths do not match");
+    throw new Error('Array lengths do not match');
   }
-  for (let i = 0; i<keys.length; i++) {
+  for (let i = 0; i < keys.length; i++) {
     result[keys[i]] = values[i];
   }
   return result;
 }
 
-export function isValidISIN(symbol:string):boolean {
+export function isValidISIN(symbol: string): boolean {
   return symbol.match(/[a-z0-9]{12,12}/i) !== null;
 }
 
-export function isValidMIC(marketID:string):boolean {
+export function isValidMIC(marketID: string): boolean {
   return marketID.match(/[A-Z]{4,4}/i) !== null;
 }
 
-
 export const quoteProviderService = new QuoteProviderService();
-
-
-

@@ -5,4 +5,3 @@ export interface Dictionary<T> {
 export interface NumKeyDictionary<T> {
   [id: number]: T;
 }
-

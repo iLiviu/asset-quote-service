@@ -15,6 +15,7 @@
   "license": "GPL-3.0-or-later",
   "scripts": {
     "build": "tsc",
+    "lint": "tslint 'src/**/*.ts",
     "start": "npm run serve",
     "serve": "node dist/server.js",
     "watch-node": "nodemon dist/server.js",

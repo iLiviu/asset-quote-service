@@ -1,6 +1,9 @@
-import { QuoteProvider, AssetType, Asset, AssetTypeNotSupportedError, parseSymbol, getShortSymbols, mapStringKeyValues } from "./quote-provider";
-import axios from "axios";
-import { Dictionary } from "../models/dictionary";
+import axios from 'axios';
+
+import { Dictionary } from '../models/dictionary';
+import {
+  Asset, AssetType, AssetTypeNotSupportedError, getShortSymbols, mapStringKeyValues, parseSymbol, QuoteProvider,
+} from './quote-provider';
 
 interface IEXQuote {
   symbol: string;
@@ -14,26 +17,25 @@ interface IEXCryptoQuote {
   latestPrice: number;
 }
 
-
 /**
  * Provide cryptocurrency and stock quotes(north america) from IEX
  */
 export class IEXQuoteProvider implements QuoteProvider {
 
   async getStockQuotes(symbols: string[]): Promise<Asset[]> {
-    let shortSymbols = getShortSymbols(symbols);
-    let symbolsMap = mapStringKeyValues(shortSymbols, symbols);
-    let symbolsStr = shortSymbols.join(',');
+    const shortSymbols = getShortSymbols(symbols);
+    const symbolsMap = mapStringKeyValues(shortSymbols, symbols);
+    const symbolsStr = shortSymbols.join(',');
 
-    let response = await axios.get('https://api.iextrading.com/1.0/tops/last?symbols=' + symbolsStr);
-    let quotes: IEXQuote[] = response.data;
-    let result: Asset[] = [];
-    for (let quote of quotes) {
+    const response = await axios.get('https://api.iextrading.com/1.0/tops/last?symbols=' + symbolsStr);
+    const quotes: IEXQuote[] = response.data;
+    const result: Asset[] = [];
+    for (const quote of quotes) {
       if (symbolsMap[quote.symbol]) {
         result.push({
+          currency: 'USD',
           price: quote.price,
           symbol: symbolsMap[quote.symbol],
-          currency: "USD",
         });
       }
     }
@@ -53,32 +55,30 @@ export class IEXQuoteProvider implements QuoteProvider {
   }
 
   async getCryptoCurrencyQuotes(symbols: string[]): Promise<Asset[]> {
-    let requestedSymbols: Dictionary<string> = {};
-    for (let fullSymbol of symbols) {
-      let symbolParts = parseSymbol(fullSymbol);
-      let symbol = symbolParts.shortSymbol.toUpperCase().replace(/USD$/i, 'USDT'); //iex only has USDT pairs for now
+    const requestedSymbols: Dictionary<string> = {};
+    for (const fullSymbol of symbols) {
+      const symbolParts = parseSymbol(fullSymbol);
+      let symbol = symbolParts.shortSymbol.toUpperCase().replace(/USD$/i, 'USDT'); // iex only has USDT pairs for now
       if (!symbol.match(/USDT$/i)) {
         symbol = symbol + 'USDT';
       }
       requestedSymbols[symbol] = fullSymbol;
     }
 
-    let response = await axios.get('https://api.iextrading.com/1.0/stock/market/crypto');
-    let quotes: IEXCryptoQuote[] = response.data;
-    let result: Asset[] = [];
-    for (let quote of quotes) {
+    const response = await axios.get('https://api.iextrading.com/1.0/stock/market/crypto');
+    const quotes: IEXCryptoQuote[] = response.data;
+    const result: Asset[] = [];
+    for (const quote of quotes) {
       if (requestedSymbols[quote.symbol]) {
         result.push({
-          symbol: requestedSymbols[quote.symbol],
+          currency: 'USD',
           price: +quote.latestPrice,
-          currency: "USD",
+          symbol: requestedSymbols[quote.symbol],
         });
       }
     }
 
-
     return result;
-
   }
 
   getMutualFundQuotes(symbols: string[]): Promise<Asset[]> {
@@ -86,7 +86,7 @@ export class IEXQuoteProvider implements QuoteProvider {
   }
 
   getSupportedMarkets(): string[] {
-    return ['ARCX', 'XNGS', 'EDGX', 'BATS', 'EDGA', 'XCHI', 'BATY', 'XPHL', 'XNYS', 'XBOS', 'IEXG', 'XCIS', 'XASE', 'XNAS','XCBO'];
+    return ['ARCX', 'XNGS', 'EDGX', 'BATS', 'EDGA', 'XCHI', 'BATY', 'XPHL', 'XNYS', 'XBOS', 'IEXG', 'XCIS', 'XASE', 'XNAS', 'XCBO'];
   }
 
   getId(): string {
@@ -94,8 +94,5 @@ export class IEXQuoteProvider implements QuoteProvider {
   }
 }
 
-//register as quote provider
+// register as quote provider
 export const iexQuoteProvider = new IEXQuoteProvider();
-
-
-

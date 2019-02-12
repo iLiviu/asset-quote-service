@@ -1,7 +1,7 @@
+import axios from 'axios';
 
-import { QuoteProvider, AssetType, Asset, AssetTypeNotSupportedError, parseSymbol } from "./quote-provider";
-import axios from "axios";
 import logger from '../logger';
+import { Asset, AssetType, AssetTypeNotSupportedError, parseSymbol, QuoteProvider } from './quote-provider';
 
 /**
  * Provide bond and stock quotes from Boerse Frankfurt (DE)
@@ -32,24 +32,32 @@ export class XETRQuoteProvider implements QuoteProvider {
     throw new AssetTypeNotSupportedError(AssetType.CRYPTOCURRENCY);
   }
 
+  getSupportedMarkets(): string[] {
+    return [];
+  }
+
+  getId(): string {
+    return 'XETR';
+  }
+
   private async getAssetQuotes(symbols: string[], assetsType: AssetType): Promise<Asset[]> {
-    let promises: Promise<Asset>[] = [];
-    for (let symbol of symbols) {
-      let promise = this.getAssetQuote(symbol, assetsType);
+    const promises: Array<Promise<Asset>> = [];
+    for (const symbol of symbols) {
+      const promise = this.getAssetQuote(symbol, assetsType);
       promises.push(promise);
     }
-    let assets = await Promise.all(promises);
+    const assets = await Promise.all(promises);
     return assets;
   }
 
   private async getAssetQuote(fullSymbol: string, assetType: AssetType): Promise<Asset> {
     let price: number = null;
-    let symbolParts = parseSymbol(fullSymbol);
+    const symbolParts = parseSymbol(fullSymbol);
     try {
-      let response = await axios.get('http://en.boerse-frankfurt.de/searchresults?_search=' + symbolParts.shortSymbol);
-      let htmlBody = response.data;
+      const response = await axios.get('http://en.boerse-frankfurt.de/searchresults?_search=' + symbolParts.shortSymbol);
+      const htmlBody = response.data;
       let currency = 'EUR';
-      //extract quote
+      // extract quote
       let regex = / field="last"[^>]+jsvalue="([0-9.]+)/g;
       let match = regex.exec(htmlBody);
       if (match) {
@@ -63,50 +71,39 @@ export class XETRQuoteProvider implements QuoteProvider {
 
       }
       if (price) {
-        //extract trading currency
+        // extract trading currency
         regex = /<h2>Master Data<\/h2>[\s\S]*?Currency\s*<\/td>\s*<td[^>]*>([^<]+)/g;
         match = regex.exec(htmlBody);
         if (match) {
-          let currencyStr = match[1].trim();
+          const currencyStr = match[1].trim();
           if (currencyStr === 'Euro') {
-            currency = 'EUR'
-          } if (currencyStr === 'US-Dollar') {
-            currency = 'USD'
+            currency = 'EUR';
+          } else if (currencyStr === 'US-Dollar') {
+            currency = 'USD';
           } else {
             currency = currencyStr;
           }
         }
 
         return {
-          currency: currency,
-          price: price,
+          currency,
           percentPrice: assetType === AssetType.BOND,
+          price,
           symbol: fullSymbol,
 
         };
-
       }
     } catch (err) {
       logger.error(`Could not get quote for symbol "${fullSymbol}": ${err}`);
     }
-
 
     return {
       currency: null,
       price: null,
       symbol: fullSymbol,
     };
-
-  }
-
-  getSupportedMarkets(): string[] {
-    return [];
-  }
-
-  getId(): string {
-    return 'XETR';
   }
 }
 
-//register as quote provider
+// register as quote provider
 export const xetrQuoteProvider = new XETRQuoteProvider();

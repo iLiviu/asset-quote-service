@@ -1,22 +1,23 @@
-import NodeCache from 'node-cache';
 import { Request, Response } from 'express';
-import { iexQuoteProvider } from './iex-quote-provider';
-import { quoteProviderService, QuoteProvider, AssetType, Asset, AssetTypeNotSupportedError, parseSymbol, QuoteError, isValidMIC, isValidISIN } from './quote-provider';
-import { binanceQuoteProvider } from './binance-quote-provider';
-import { coinbaseQuoteProvider } from './coinbase-quote-provider';
-import { cmeQuoteProvider } from './cme-quote-provider';
-import { xstuQuoteProvider } from './xstu-quote-provider';
-import { xetrQuoteProvider } from './xetr-quote-provider';
-import { bvbQuoteProvider } from './bvb-quote-provider';
-import { xlonQuoteProvider } from './xlon-quote-provider';
-import { morningstarQuoteProvider } from './morningstar-quote-provider';
+import NodeCache from 'node-cache';
+
 import { CONFIG } from '../config';
-import { fixerQuoteProvider } from './fixer-quote-provider';
 import logger from '../logger';
 import { Dictionary } from '../models/dictionary';
+import { binanceQuoteProvider } from './binance-quote-provider';
+import { bvbQuoteProvider } from './bvb-quote-provider';
+import { cmeQuoteProvider } from './cme-quote-provider';
+import { coinbaseQuoteProvider } from './coinbase-quote-provider';
+import { fixerQuoteProvider } from './fixer-quote-provider';
 import { ftQuoteProvider } from './ft-quote-provider';
-
-
+import { iexQuoteProvider } from './iex-quote-provider';
+import { morningstarQuoteProvider } from './morningstar-quote-provider';
+import {
+  Asset, AssetType, AssetTypeNotSupportedError, isValidISIN, isValidMIC, parseSymbol, QuoteError, QuoteProvider, quoteProviderService,
+} from './quote-provider';
+import { xetrQuoteProvider } from './xetr-quote-provider';
+import { xlonQuoteProvider } from './xlon-quote-provider';
+import { xstuQuoteProvider } from './xstu-quote-provider';
 
 interface QuoteProviderSymbols {
   provider: QuoteProvider;
@@ -30,16 +31,8 @@ export class AssetQuoteRequestHandler {
   private cache: NodeCache;
 
   constructor() {
-    //we store the quotes for assets in cache for 60 minutes
+    // we store the quotes for assets in cache for 60 minutes
     this.cache = new NodeCache({ stdTTL: CONFIG.DEFAULT_CACHE_TTL });
-  }
-
-  /**
-   * Tell the client that the HTTP request is invalid
-   * @param res HTTP Response object 
-   */
-  private sendInvalidRequestResponse(res: Response) {
-    res.status(400).json({ code: 400, message: 'Invalid request' });
   }
 
   /**
@@ -78,6 +71,13 @@ export class AssetQuoteRequestHandler {
     this.handleRequest(AssetType.MUTUAL_FUND, req, res);
   }
 
+  /**
+   * Tell the client that the HTTP request is invalid
+   * @param res HTTP Response object
+   */
+  private sendInvalidRequestResponse(res: Response) {
+    res.status(400).json({ code: 400, message: 'Invalid request' });
+  }
 
   /**
    * Get the quotes for a given list of symbols.
@@ -88,29 +88,29 @@ export class AssetQuoteRequestHandler {
    * @return list of quotes
    */
   private async getQuotes(symbols: string[], assetType: AssetType): Promise<Asset[]> {
-    //remove incorrect symbols
-    symbols = symbols.filter(symbol => {
-      let symbolParts = parseSymbol(symbol);
+    // remove incorrect symbols
+    symbols = symbols.filter((symbol) => {
+      const symbolParts = parseSymbol(symbol);
       if (symbolParts.marketCode.match(/^[A-Z0-9]{0,10}$/i)) {
-        //allow up to 12 characters for symbol (for ISIN)
+        // allow up to 12 characters for symbol (for ISIN)
         return symbolParts.shortSymbol.match(/^[A-Z0-9]{2,12}$/i);
       }
       return false;
     });
 
     let quotes: Asset[] = [];
-    let requestSymbols: Dictionary<string> = {};
-    let providersSymbolsMap: Dictionary<QuoteProviderSymbols> = {};
+    const requestSymbols: Dictionary<string> = {};
+    const providersSymbolsMap: Dictionary<QuoteProviderSymbols> = {};
     for (let symbol of symbols) {
       symbol = symbol.trim().toUpperCase();
-      let symbolParts = parseSymbol(symbol);
+      const symbolParts = parseSymbol(symbol);
       if (symbolParts.shortSymbol !== '' && symbolParts.shortSymbol.match(SYMBOL_PATTERN)) {
         let quoteProvider: QuoteProvider = null;
         if (symbolParts.marketCode !== '') {
           quoteProvider = quoteProviderService.getQuoteProvider(symbolParts.marketCode);
         }
         if (!quoteProvider) {
-          //no supported market provided, so use default quote provider for asset type
+          // no supported market provided, so use default quote provider for asset type
           if (assetType === AssetType.STOCK) {
             if (isValidISIN(symbolParts.shortSymbol)) {
               quoteProvider = xetrQuoteProvider;
@@ -135,15 +135,15 @@ export class AssetQuoteRequestHandler {
         }
 
         if (quoteProvider) {
-          //check cache first
-          let cacheKey = quoteProvider.getId() + '_' + symbolParts.shortSymbol;
-          let cachedAsset: Asset = this.cache.get(cacheKey);
+          // check cache first
+          const cacheKey = quoteProvider.getId() + '_' + symbolParts.shortSymbol;
+          const cachedAsset: Asset = this.cache.get(cacheKey);
           if (cachedAsset) {
             quotes.push(cachedAsset);
           } else {
             requestSymbols[cacheKey] = symbol;
 
-            //group symbols by quote provider so we can do bulk requests
+            // group symbols by quote provider so we can do bulk requests
             let symbolsMap = providersSymbolsMap[quoteProvider.getId()];
             if (!symbolsMap) {
               symbolsMap = {
@@ -152,48 +152,48 @@ export class AssetQuoteRequestHandler {
               };
               providersSymbolsMap[quoteProvider.getId()] = symbolsMap;
             }
-            //store as map to avoid duplicates
+            // store as map to avoid duplicates
             symbolsMap.symbols[symbol] = '1';
           }
         } else {
-          //no appropriate quote provider found for asset  
+          // no appropriate quote provider found for asset
           quotes.push({
             price: null,
-            symbol: symbol,
+            symbol,
           });
         }
       }
     }
 
-    let promises = [];
-    for (let providerId in providersSymbolsMap) {
-      let symbolsMap = providersSymbolsMap[providerId];
+    const promises = [];
+    for (const providerId of Object.keys(providersSymbolsMap)) {
+      const symbolsMap = providersSymbolsMap[providerId];
       let promise;
-      let symbols = Object.keys(symbolsMap.symbols);
+      const providerSymbols = Object.keys(symbolsMap.symbols);
       if (assetType === AssetType.STOCK) {
-        promise = symbolsMap.provider.getStockQuotes(symbols)
+        promise = symbolsMap.provider.getStockQuotes(providerSymbols);
       } else if (assetType === AssetType.CRYPTOCURRENCY) {
-        promise = symbolsMap.provider.getCryptoCurrencyQuotes(symbols)
+        promise = symbolsMap.provider.getCryptoCurrencyQuotes(providerSymbols);
       } else if (assetType === AssetType.BOND) {
-        promise = symbolsMap.provider.getBondQuotes(symbols)
+        promise = symbolsMap.provider.getBondQuotes(providerSymbols);
       } else if (assetType === AssetType.COMMODITY) {
-        promise = symbolsMap.provider.getCommodityQuotes(symbols)
+        promise = symbolsMap.provider.getCommodityQuotes(providerSymbols);
       } else if (assetType === AssetType.FOREX) {
-        promise = symbolsMap.provider.getForexQuotes(symbols)
+        promise = symbolsMap.provider.getForexQuotes(providerSymbols);
       } else if (assetType === AssetType.MUTUAL_FUND) {
-        promise = symbolsMap.provider.getMutualFundQuotes(symbols)
+        promise = symbolsMap.provider.getMutualFundQuotes(providerSymbols);
       } else {
         throw new AssetTypeNotSupportedError(assetType);
       }
 
-      promise.then(response => {
-        for (let asset of response) {
-          //update cache
-          let symbolParts = parseSymbol(asset.symbol);
-          let cacheKey = symbolsMap.provider.getId() + '_' + symbolParts.shortSymbol;
+      promise.then((response) => {
+        for (const asset of response) {
+          // update cache
+          const symbolParts = parseSymbol(asset.symbol);
+          const cacheKey = symbolsMap.provider.getId() + '_' + symbolParts.shortSymbol;
           this.cache.set(cacheKey, asset, asset.price ? CONFIG.DEFAULT_CACHE_TTL : CONFIG.INVALIDASSET_CACHE_TTL);
 
-          //replace processed symbol with user provided one
+          // replace processed symbol with user provided one
           asset.symbol = requestSymbols[cacheKey];
         }
         return response;
@@ -202,7 +202,7 @@ export class AssetQuoteRequestHandler {
     }
     if (promises.length > 0) {
       await Promise.all(promises).then((responses: Asset[][]) => {
-        for (let response of responses) {
+        for (const response of responses) {
           quotes = quotes.concat(response);
         }
       });
@@ -220,7 +220,7 @@ export class AssetQuoteRequestHandler {
     if (req.body.symbols && req.body.symbols.length) {
       try {
         logger.debug(`HTTP Request: ${JSON.stringify(req.body)}`);
-        let quotes = await this.getQuotes(req.body.symbols, assetType);
+        const quotes = await this.getQuotes(req.body.symbols, assetType);
         logger.debug(`HTTP Response: ${JSON.stringify(quotes)}`);
         res.json(quotes);
       } catch (e) {
@@ -228,7 +228,7 @@ export class AssetQuoteRequestHandler {
           res.status(500).json({ code: 500, message: e.message });
           logger.debug(e.stack);
         } else {
-          res.status(500).json({ code: 500, message: "Generic error" });
+          res.status(500).json({ code: 500, message: 'Generic error' });
           logger.error(e.stack);
         }
       }
@@ -237,17 +237,15 @@ export class AssetQuoteRequestHandler {
       logger.debug(`Invalid HTTP Request: ${JSON.stringify(req.body)}`);
     }
   }
-
 }
 
 quoteProviderService.registerQuoteProvider(coinbaseQuoteProvider);
 quoteProviderService.registerQuoteProvider(binanceQuoteProvider);
 quoteProviderService.registerQuoteProvider(iexQuoteProvider);
 quoteProviderService.registerQuoteProvider(cmeQuoteProvider);
-//quoteProviderService.registerQuoteProvider(xstuQuoteProvider);
+// quoteProviderService.registerQuoteProvider(xstuQuoteProvider);
 quoteProviderService.registerQuoteProvider(xetrQuoteProvider);
 quoteProviderService.registerQuoteProvider(bvbQuoteProvider);
 quoteProviderService.registerQuoteProvider(xlonQuoteProvider);
 quoteProviderService.registerQuoteProvider(morningstarQuoteProvider);
 quoteProviderService.registerQuoteProvider(ftQuoteProvider);
-

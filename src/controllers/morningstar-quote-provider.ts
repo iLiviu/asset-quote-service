@@ -1,7 +1,7 @@
-import { QuoteProvider, AssetType, Asset, AssetTypeNotSupportedError, parseSymbol, isValidISIN } from "./quote-provider";
-import axios from "axios";
-import logger from '../logger';
+import axios from 'axios';
 
+import logger from '../logger';
+import { Asset, AssetType, AssetTypeNotSupportedError, isValidISIN, parseSymbol, QuoteProvider } from './quote-provider';
 
 interface MorningstarQuote {
   lastPrice: number;
@@ -36,8 +36,8 @@ interface MApiResult {
 }
 
 interface MorningstarSearchResponse {
-  result: MApiResult,
-  m: MSearchResult[]
+  m: MSearchResult[];
+  result: MApiResult;
 }
 
 /**
@@ -74,42 +74,46 @@ export class MorningstarQuoteProvider implements QuoteProvider {
     throw new AssetTypeNotSupportedError(AssetType.COMMODITY);
   }
 
+  getId(): string {
+    return 'Morningstar';
+  }
+
   private async getAssetQuotes(symbols: string[]): Promise<Asset[]> {
-    let promises: Promise<Asset>[] = [];
-    for (let symbol of symbols) {
-      let promise = this.getAssetQuote(symbol);
+    const promises: Array<Promise<Asset>> = [];
+    for (const symbol of symbols) {
+      const promise = this.getAssetQuote(symbol);
       promises.push(promise);
     }
-    let assets = await Promise.all(promises);
+    const assets = await Promise.all(promises);
     return assets;
   }
 
-
   private async getAssetQuote(fullSymbol: string): Promise<Asset> {
-    let symbolParts = parseSymbol(fullSymbol);
+    const symbolParts = parseSymbol(fullSymbol);
     try {
       if (isValidISIN(symbolParts.shortSymbol)) {
         symbolParts.marketCode = '';
-        let response = await axios.get(`https://www.morningstar.com/api/v2/search/securities/5/usquote-v2/?q=${symbolParts.shortSymbol}`);
-        let data: MorningstarSearchResponse = response.data;
+        const response = await axios.get(`https://www.morningstar.com/api/v2/search/securities/5/usquote-v2/?q=${symbolParts.shortSymbol}`);
+        const data: MorningstarSearchResponse = response.data;
         if (data.result.code === 0 && data.m.length > 0 && data.m[0].r.length > 0) {
-          let details = data.m[0].r[0];
+          const details = data.m[0].r[0];
           symbolParts.marketCode = details.LS01Z;
           symbolParts.shortSymbol = details.OS001;
         }
       }
       if (symbolParts.marketCode !== '' && symbolParts.shortSymbol !== '') {
-        let response = await axios.get(`https://www.morningstar.com/stocks/${symbolParts.marketCode}/${symbolParts.shortSymbol}/quote.html`);
-        let htmlBody = response.data;
-        //extract quote
+        let response = await axios.get(`https://www.morningstar.com/stocks/` +
+          `${symbolParts.marketCode}/${symbolParts.shortSymbol}/quote.html`);
+        const htmlBody = response.data;
+        // extract quote
         let regex = /name="secId"[^>]+content="([^"]+)/g;
         let match = regex.exec(htmlBody);
         if (match) {
-          let securityId = match[1];
+          const securityId = match[1];
           regex = /name="securityType"[^>]+content="([^"]+)/g;
           match = regex.exec(htmlBody);
           if (match) {
-            let securityType = match[1];
+            const securityType = match[1];
             let realtimeToken;
             let apiKey;
             regex = /name="realTimeToken"[^>]+content="([^"]+)/g;
@@ -124,7 +128,6 @@ export class MorningstarQuoteProvider implements QuoteProvider {
             }
             if (realtimeToken && apiKey) {
 
-
               let url: string;
               if (securityType === 'ST') {
                 url = `https://api-global.morningstar.com/sal-service/v1/stock/realTime/v3/${securityId}/data`;
@@ -136,22 +139,19 @@ export class MorningstarQuoteProvider implements QuoteProvider {
                   headers: {
                     'apikey': apiKey,
                     'x-api-realtime-e': realtimeToken,
-                  }
+                  },
                 });
-                let quote: MorningstarQuote = response.data;
+                const quote: MorningstarQuote = response.data;
                 if (quote.lastPrice) {
                   return {
                     currency: quote.currencyCode,
                     price: quote.lastPrice,
                     symbol: fullSymbol,
                   };
-
                 }
-
               }
             }
           }
-
         }
       }
     } catch (err) {
@@ -163,16 +163,8 @@ export class MorningstarQuoteProvider implements QuoteProvider {
       price: null,
       symbol: fullSymbol,
     };
-
-  }
-
-  getId(): string {
-    return 'Morningstar';
   }
 }
 
-//register as quote provider
+// register as quote provider
 export const morningstarQuoteProvider = new MorningstarQuoteProvider();
-
-
-

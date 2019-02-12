@@ -1,14 +1,12 @@
-import { QuoteProvider, AssetType, Asset, AssetTypeNotSupportedError, parseSymbol } from "./quote-provider";
-import axios from "axios";
+import axios from 'axios';
+
 import logger from '../logger';
-
-
+import { Asset, AssetType, AssetTypeNotSupportedError, parseSymbol, QuoteProvider } from './quote-provider';
 
 /**
  * Provide mutual fund quotes from Financial Times
  */
 export class FTQuoteProvider implements QuoteProvider {
-
   async getStockQuotes(symbols: string[]): Promise<Asset[]> {
     return this.getAssetQuotes(symbols);
   }
@@ -37,26 +35,28 @@ export class FTQuoteProvider implements QuoteProvider {
     return this.getAssetQuotes(symbols);
   }
 
+  getId(): string {
+    return 'FinancialTimes';
+  }
 
   private async getAssetQuotes(symbols: string[]): Promise<Asset[]> {
-    let promises: Promise<Asset>[] = [];
-    for (let symbol of symbols) {
-      let promise = this.getAssetQuote(symbol);
+    const promises: Array<Promise<Asset>> = [];
+    for (const symbol of symbols) {
+      const promise = this.getAssetQuote(symbol);
       promises.push(promise);
     }
-    let assets = await Promise.all(promises);
+    const assets = await Promise.all(promises);
     return assets;
   }
 
-
   private async getAssetQuote(fullSymbol: string): Promise<Asset> {
-    let symbolParts = parseSymbol(fullSymbol);
+    const symbolParts = parseSymbol(fullSymbol);
     try {
-      let response = await axios.get('https://markets.ft.com/data/funds/tearsheet/summary?s=' + symbolParts.shortSymbol);
-      let htmlBody = response.data;
-      //extract quote
-      let regex = /overview__quote__bar[^>]*><li><span[^>]*>Price(\s*\(([^\)]+))?[^<]*<\/span><span[^>]*>([0-9.,]+)/g;
-      let match = regex.exec(htmlBody);
+      const response = await axios.get('https://markets.ft.com/data/funds/tearsheet/summary?s=' + symbolParts.shortSymbol);
+      const htmlBody = response.data;
+      // extract quote
+      const regex = /overview__quote__bar[^>]*><li><span[^>]*>Price(\s*\(([^\)]+))?[^<]*<\/span><span[^>]*>([0-9.,]+)/g;
+      const match = regex.exec(htmlBody);
       let price: number = null;
       let currency = 'USD';
       if (match) {
@@ -65,8 +65,8 @@ export class FTQuoteProvider implements QuoteProvider {
       }
       if (price) {
         return {
-          currency: currency,
-          price: price,
+          currency,
+          price,
           symbol: fullSymbol,
         };
       }
@@ -79,16 +79,8 @@ export class FTQuoteProvider implements QuoteProvider {
       price: null,
       symbol: fullSymbol,
     };
-
-  }
-
-  getId(): string {
-    return 'FinancialTimes';
   }
 }
 
-//register as quote provider
+// register as quote provider
 export const ftQuoteProvider = new FTQuoteProvider();
-
-
-

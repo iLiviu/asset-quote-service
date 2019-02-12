@@ -1,9 +1,8 @@
+import axios from 'axios';
+import querystring from 'querystring';
 
-import { QuoteProvider, AssetType, Asset, AssetTypeNotSupportedError, parseSymbol } from "./quote-provider";
-import axios from "axios";
-import querystring from "querystring";
-import { Dictionary } from "../models/dictionary";
-
+import { Dictionary } from '../models/dictionary';
+import { Asset, AssetType, AssetTypeNotSupportedError, parseSymbol, QuoteProvider } from './quote-provider';
 
 /**
  * Provide bond and stock quotes from Bursa de Valori Bucuresti (RO)
@@ -34,11 +33,19 @@ export class BVBQuoteProvider implements QuoteProvider {
     throw new AssetTypeNotSupportedError(AssetType.CRYPTOCURRENCY);
   }
 
+  getSupportedMarkets(): string[] {
+    return ['BVB', 'AERO', 'XBSE'];
+  }
+
+  getId(): string {
+    return 'BVB';
+  }
+
   private getInputValue(name: string, htmlBody: string): string {
-    let pattern = new RegExp('name="' + name + '"[^>]+value="([^"]+)');
-    let match = pattern.exec(htmlBody);
+    const pattern = new RegExp('name="' + name + '"[^>]+value="([^"]+)');
+    const match = pattern.exec(htmlBody);
     if (match) {
-      return match[1]
+      return match[1];
     } else {
       return '';
     }
@@ -46,10 +53,10 @@ export class BVBQuoteProvider implements QuoteProvider {
   }
 
   private async getAssetQuotes(symbols: string[], assetType: AssetType): Promise<Asset[]> {
-    let mainSegmentSymbols: string[] = [];
-    let aeroSymbols: string[] = [];
-    for (let fullSymbol of symbols) {
-      let symbolParts = parseSymbol(fullSymbol);
+    const mainSegmentSymbols: string[] = [];
+    const aeroSymbols: string[] = [];
+    for (const fullSymbol of symbols) {
+      const symbolParts = parseSymbol(fullSymbol);
       if (symbolParts.marketCode === 'AERO') {
         aeroSymbols.push(fullSymbol);
       } else {
@@ -57,16 +64,16 @@ export class BVBQuoteProvider implements QuoteProvider {
       }
 
     }
-    let promises: Promise<Asset[]>[] = [];
+    const promises: Array<Promise<Asset[]>> = [];
     if (mainSegmentSymbols.length > 0) {
       promises.push(this.getSegmentAssetQuotes(mainSegmentSymbols, assetType, ''));
     }
     if (aeroSymbols.length > 0) {
       promises.push(this.getSegmentAssetQuotes(aeroSymbols, assetType, 'AERO'));
     }
-    let results = await Promise.all(promises);
+    const results = await Promise.all(promises);
     let quotes: Asset[] = [];
-    for (let assets of results) {
+    for (const assets of results) {
       quotes = quotes.concat(assets);
     }
     return quotes;
@@ -89,75 +96,66 @@ export class BVBQuoteProvider implements QuoteProvider {
     let response = await axios.get(url);
     let htmlBody = response.data;
     if (segmentId === 'AERO') {
-      let viewState = this.getInputValue('__VIEWSTATE', htmlBody);
-      let eventValidation = this.getInputValue('__EVENTVALIDATION', htmlBody);
-      let viewStateGenerator = this.getInputValue('__VIEWSTATEGENERATOR', htmlBody);
-      let postData = querystring.stringify({
-        'ctl00$ctl00$MasterScriptManager': 'tl00$ctl00$MasterScriptManager|ctl00$ctl00$body$rightColumnPlaceHolder$TabsControlPiete$lb1',
-        'ctl00$ctl00$body$rightColumnPlaceHolder$ddlTier': '999',
-        'gv_length': '10',
-        '__EVENTTARGET': 'ctl00$ctl00$body$rightColumnPlaceHolder$TabsControlPiete$lb1',
-        '__EVENTARGUMENT': '',
-        '__LASTFOCUS': '',
-        '__VIEWSTATE': viewState,
-        '__EVENTVALIDATION': eventValidation,
+      const viewState = this.getInputValue('__VIEWSTATE', htmlBody);
+      const eventValidation = this.getInputValue('__EVENTVALIDATION', htmlBody);
+      const viewStateGenerator = this.getInputValue('__VIEWSTATEGENERATOR', htmlBody);
+      const postData = querystring.stringify({
         __ASYNCPOST: 'true',
-        '__VIEWSTATEGENERATOR': viewStateGenerator,
-
+        __EVENTARGUMENT: '',
+        __EVENTTARGET: 'ctl00$ctl00$body$rightColumnPlaceHolder$TabsControlPiete$lb1',
+        __EVENTVALIDATION: eventValidation,
+        __LASTFOCUS: '',
+        __VIEWSTATE: viewState,
+        __VIEWSTATEGENERATOR: viewStateGenerator,
+        ctl00$ctl00$MasterScriptManager: 'tl00$ctl00$MasterScriptManager|ctl00$ctl00$body$rightColumnPlaceHolder$TabsControlPiete$lb1',
+        ctl00$ctl00$body$rightColumnPlaceHolder$ddlTier: '999',
+        gv_length: '10',
       });
       response = await axios.post(url, postData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.80 Safari/537.36'
-        }
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.80 Safari/537.36',
+        },
       });
       htmlBody = response.data;
     }
 
-    let currency = 'USD';
-
-    let symbolsMap: Dictionary<string> = {};
-    for (let fullSymbol of symbols) {
-      let symbolParts = parseSymbol(fullSymbol);
+    const symbolsMap: Dictionary<string> = {};
+    for (const fullSymbol of symbols) {
+      const symbolParts = parseSymbol(fullSymbol);
       symbolsMap[symbolParts.shortSymbol] = fullSymbol;
 
     }
 
-    //extract quote
-    let regex = /\/FinancialInstrumentsDetails\.aspx\?s=([^"&]+)[^>]*><strong>[^<]*<\/strong><\/a><p[^>]*>([^<]+)<\/p>\s*<\/td><td[^>]*>[^<]*<\/td><td[^>]*>\s*([0-9,.]+)/g;
-    let match;
-    let result: Asset[] = [];
-    while (match = regex.exec(htmlBody)) {
-      let userSymbol;
+    // extract quote
+    const regex = new RegExp('\/FinancialInstrumentsDetails\.aspx\?s=([^"&]+)[^>]*><strong>[^<]*<\/strong><\/a><p[^>]*>([^<]+)<\/p>' +
+      '\s*<\/td><td[^>]*>[^<]*<\/td><td[^>]*>\s*([0-9,.]+)', 'g');
+    const result: Asset[] = [];
+    let match = regex.exec(htmlBody);
+    while (match) {
+      let userSymbol: string;
       if (symbolsMap[match[1]]) {
-        userSymbol = symbolsMap[match[1]]
+        userSymbol = symbolsMap[match[1]];
       } else if (symbolsMap[match[2]]) {
         userSymbol = symbolsMap[match[2]];
       }
       if (userSymbol) {
-        let price = match[3];
+        const price = match[3];
         result.push({
           currency: 'RON',
-          price: +price,
           percentPrice: assetType === AssetType.BOND,
+          price: +price,
           symbol: userSymbol,
         });
       }
+
+      match = regex.exec(htmlBody);
     }
     return result;
-
   }
 
-
-
-  getSupportedMarkets(): string[] {
-    return ['BVB', 'AERO','XBSE'];
-  }
-
-  getId(): string {
-    return 'BVB';
-  }
 }
 
-//register as quote provider
+// register as quote provider
 export const bvbQuoteProvider = new BVBQuoteProvider();
