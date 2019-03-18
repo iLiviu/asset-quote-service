@@ -1,6 +1,7 @@
 import axios from 'axios';
 import querystring from 'querystring';
 
+import logger from '../logger';
 import { Dictionary } from '../models/dictionary';
 import { Asset, AssetType, AssetTypeNotSupportedError, parseSymbol, QuoteProvider } from './quote-provider';
 
@@ -74,7 +75,9 @@ export class BVBQuoteProvider implements QuoteProvider {
     const results = await Promise.all(promises);
     let quotes: Asset[] = [];
     for (const assets of results) {
-      quotes = quotes.concat(assets);
+      if (assets) {
+        quotes = quotes.concat(assets);
+      }
     }
     return quotes;
   }
@@ -96,20 +99,32 @@ export class BVBQuoteProvider implements QuoteProvider {
     let response = await axios.get(url);
     let htmlBody = response.data;
     if (segmentId === 'AERO') {
+      const submitButValue = (assetType === AssetType.BOND) ? 'ATS' : 'AeRO';
+      let submitBut: string;
+      const submitRegex = new RegExp('<input[^>]+name="([^"]+)[^>]+value="' + submitButValue + '"');
+      const submitMatch = submitRegex.exec(htmlBody);
+      if (submitMatch) {
+        submitBut = submitMatch[1];
+      } else {
+        logger.error(`Could not switch to AeRO market quotes`);
+        return undefined;
+      }
+
       const viewState = this.getInputValue('__VIEWSTATE', htmlBody);
       const eventValidation = this.getInputValue('__EVENTVALIDATION', htmlBody);
       const viewStateGenerator = this.getInputValue('__VIEWSTATEGENERATOR', htmlBody);
       const postData = querystring.stringify({
         __ASYNCPOST: 'true',
         __EVENTARGUMENT: '',
-        __EVENTTARGET: 'ctl00$ctl00$body$rightColumnPlaceHolder$TabsControlPiete$lb1',
+        __EVENTTARGET: '',
         __EVENTVALIDATION: eventValidation,
         __LASTFOCUS: '',
         __VIEWSTATE: viewState,
         __VIEWSTATEGENERATOR: viewStateGenerator,
-        ctl00$ctl00$MasterScriptManager: 'tl00$ctl00$MasterScriptManager|ctl00$ctl00$body$rightColumnPlaceHolder$TabsControlPiete$lb1',
-        ctl00$ctl00$body$rightColumnPlaceHolder$ddlTier: '999',
+        ctl00$ctl00$MasterScriptManager: 'ctl00$ctl00$body$rightColumnPlaceHolder$UpdatePanel3|' + submitBut,
+        ctl00$ctl00$body$rightColumnPlaceHolder$TierControl$ddlTier: '999',
         gv_length: '10',
+        [submitBut]: submitButValue,
       });
       response = await axios.post(url, postData, {
         headers: {
@@ -129,8 +144,8 @@ export class BVBQuoteProvider implements QuoteProvider {
     }
 
     // extract quote
-    const regex = new RegExp('\/FinancialInstrumentsDetails\.aspx\?s=([^"&]+)[^>]*><strong>[^<]*<\/strong><\/a><p[^>]*>([^<]+)<\/p>' +
-      '\s*<\/td><td[^>]*>[^<]*<\/td><td[^>]*>\s*([0-9,.]+)', 'g');
+    const regex = new RegExp('/FinancialInstrumentsDetails\\.aspx\\?s=([^"&]+)[^>]*><strong>[^<]*</strong></a><p[^>]*>([^<]+)</p>' +
+      '\\s*</td><td[^>]*>[^<]*</td><td[^>]*>\\s*([0-9,.]+)', 'g');
     const result: Asset[] = [];
     let match = regex.exec(htmlBody);
     while (match) {
