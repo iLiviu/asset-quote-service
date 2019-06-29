@@ -148,24 +148,28 @@ export class BVBQuoteProvider implements QuoteProvider {
       '\\s*</td><td[^>]*>[^<]*</td><td[^>]*>\\s*([0-9,.]+)', 'g');
     const result: Asset[] = [];
     let match = regex.exec(htmlBody);
-    while (match) {
-      let userSymbol: string;
-      if (symbolsMap[match[1]]) {
-        userSymbol = symbolsMap[match[1]];
-      } else if (symbolsMap[match[2]]) {
-        userSymbol = symbolsMap[match[2]];
-      }
-      if (userSymbol) {
-        const price = match[3];
-        result.push({
-          currency: 'RON',
-          percentPrice: assetType === AssetType.BOND,
-          price: +price,
-          symbol: userSymbol,
-        });
-      }
+    if (match) {
+      while (match) {
+        let userSymbol: string;
+        if (symbolsMap[match[1]]) {
+          userSymbol = symbolsMap[match[1]];
+        } else if (symbolsMap[match[2]]) {
+          userSymbol = symbolsMap[match[2]];
+        }
+        if (userSymbol) {
+          const price = match[3];
+          result.push({
+            currency: 'RON',
+            percentPrice: assetType === AssetType.BOND,
+            price: +price,
+            symbol: userSymbol,
+          });
+        }
 
-      match = regex.exec(htmlBody);
+        match = regex.exec(htmlBody);
+      }
+    } else {
+      logger.error('Could not parse quotes!');
     }
     return result;
   }
