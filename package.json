@@ -1,6 +1,6 @@
 {
   "name": "asset-quote-service",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Retrieve quotes for various tradeable assets",
   "homepage": "https://github.com/iLiviu/asset-quote-service#readme",
   "repository": {
