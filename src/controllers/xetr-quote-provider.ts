@@ -1,4 +1,5 @@
 import axios from 'axios';
+import EventSource from 'eventsource';
 
 import logger from '../logger';
 import { Asset, AssetType, AssetTypeNotSupportedError, parseSymbol, QuoteProvider, isValidISIN } from './quote-provider';
@@ -90,7 +91,7 @@ export class XETRQuoteProvider implements QuoteProvider {
       let isin = symbolParts.shortSymbol;
       if (!isValidISIN(isin)) {
         // we need to find the asset's ISIN
-        let searchResponse = await axios.get('https://api.boerse-frankfurt.de/global_search/limitedsearch/en?searchTerms=' + isin);
+        const searchResponse = await axios.get('https://api.boerse-frankfurt.de/global_search/limitedsearch/en?searchTerms=' + isin);
         const results: XETRSearchResult[][] = searchResponse.data;
         if (results.length > 0 && results[0].length > 0) {
           isin = results[0][0].isin;
@@ -99,7 +100,7 @@ export class XETRQuoteProvider implements QuoteProvider {
         }
       }
       if (isin) {
-        let response = await axios.get('https://api.boerse-frankfurt.de/composite/multiple_widget?' +
+        const response = await axios.get('https://api.boerse-frankfurt.de/composite/multiple_widget?' +
           'widgetUris=/data/instrument_information%3Fisin%3D' + isin +
           '&widgetUris=/data/etp_master_data%3Fisin%3D' + isin +
           '&widgetUris=%2Fdata%2Fmaster_data_bond%3Fisin%3D' + isin);
@@ -118,34 +119,43 @@ export class XETRQuoteProvider implements QuoteProvider {
         }
 
         if (info && info.defaultMic) {
+          const pricePromise = new Promise<PriceInformation>((resolve, reject) => {
+            const eventSource = new EventSource('https://api.boerse-frankfurt.de/data/price_information?' +
+              'isin=' + isin +
+              '&mic=' + info.defaultMic);
+            eventSource.addEventListener('message', (event: any) => {
+              const pInfo: PriceInformation = JSON.parse(event.data);
+              eventSource.close();
+              resolve(pInfo);
+            });
+            eventSource.addEventListener('error', (event: any) => {
+              eventSource.close();
+              reject(event);
+            });
+          });
+          const priceInfo = await pricePromise;
 
-          response = await axios.get('https://api.boerse-frankfurt.de/data/price_information?' +
-            'isin=' + isin +
-            '&mic=' + info.defaultMic);
-          if (response.data.startsWith('data:')) {
-            const priceInfo: PriceInformation = JSON.parse(response.data.substr(5));
-            if (priceInfo) {
-              if (priceInfo.lastPrice) {
-                price = priceInfo.lastPrice;
+          if (priceInfo) {
+            if (priceInfo.lastPrice) {
+              price = priceInfo.lastPrice;
+            }
+            if (price) {
+              let currency = 'EUR';
+              if (etpInfo) {
+                currency = etpInfo.tradingCurrency;
+              } else if (bondInfo) {
+                currency = bondInfo.issueCurrency;
               }
-              if (price) {
-                let currency = 'EUR';
-                if (etpInfo) {
-                  currency = etpInfo.tradingCurrency;
-                } else if (bondInfo) {
-                  currency = bondInfo.issueCurrency;
-                }
 
-                return {
-                  currency,
-                  percentPrice: assetType === AssetType.BOND,
-                  price,
-                  symbol: fullSymbol,
-
-                };
-              }
+              return {
+                currency,
+                percentPrice: assetType === AssetType.BOND,
+                price,
+                symbol: fullSymbol,
+              };
             }
           }
+
         }
       }
     } catch (err) {
