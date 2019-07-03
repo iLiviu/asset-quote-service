@@ -1,3 +1,8 @@
+## 1.1.3 (2019-07-03)
+* updated dependencies
+### Bug fixes
+* fix getting quotes from XETR
+
 ## 1.1.2 (2019-06-29)
 ### Bug fixes
 * fix getting quotes from XETR
