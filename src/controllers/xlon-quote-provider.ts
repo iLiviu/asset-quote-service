@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 import logger from '../logger';
+import { Dictionary } from '../models/dictionary';
 import { Asset, AssetType, AssetTypeNotSupportedError, isValidISIN, parseSymbol, QuoteProvider } from './quote-provider';
 
 interface XLONSearchQuote {
@@ -13,6 +14,7 @@ interface XLONSearchQuote {
  * Provide bond and stock quotes from London Stock Exchange (GB)
  */
 export class XLONQuoteProvider implements QuoteProvider {
+  private xlonSymbols: Dictionary<string> = {};
 
   async getStockQuotes(symbols: string[]): Promise<Asset[]> {
     return this.getAssetQuotes(symbols);
@@ -119,15 +121,20 @@ export class XLONQuoteProvider implements QuoteProvider {
    */
   private async getISINQuote(fullSymbol: string): Promise<Asset> {
     const symbolParts = parseSymbol(fullSymbol);
-    let response = await axios.get('https://www.londonstockexchange.com/exchange/searchengine/all/json/search.html?q=' +
-      symbolParts.shortSymbol);
-    const quotes: XLONSearchQuote[] = response.data.quotes;
-    let xlonSymbol = '';
-    if (quotes.length > 0) {
-      xlonSymbol = quotes[0].symbol1;
+    let xlonSymbol = this.xlonSymbols[fullSymbol];
+    if (!xlonSymbol) {
+      const response = await axios.get('https://www.londonstockexchange.com/exchange/searchengine/all/json/search.html?q=' +
+        symbolParts.shortSymbol);
+      const quotes: XLONSearchQuote[] = response.data.quotes;
+      if (quotes.length > 0) {
+        xlonSymbol = quotes[0].symbol1;
+        if (xlonSymbol) {
+          this.xlonSymbols[fullSymbol] = xlonSymbol;
+        }
+      }
     }
     if (xlonSymbol) {
-      response = await axios.get(`https://www.londonstockexchange.com/exchange/prices-and-markets/stocks/summary/company-summary/` +
+      const response = await axios.get(`https://www.londonstockexchange.com/exchange/prices-and-markets/stocks/summary/company-summary/` +
         `${xlonSymbol}.html`);
       const htmlBody = response.data;
       // extract quote

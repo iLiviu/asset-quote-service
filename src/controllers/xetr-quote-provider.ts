@@ -2,7 +2,8 @@ import axios from 'axios';
 import EventSource from 'eventsource';
 
 import logger from '../logger';
-import { Asset, AssetType, AssetTypeNotSupportedError, parseSymbol, QuoteProvider, isValidISIN } from './quote-provider';
+import { Dictionary } from '../models/dictionary';
+import { Asset, AssetType, AssetTypeNotSupportedError, isValidISIN, parseSymbol, QuoteProvider } from './quote-provider';
 
 interface XETRSearchResult {
   isin: string;
@@ -37,10 +38,21 @@ interface WidgetResponse {
   data: any;
 }
 
+interface SecurityInfo {
+  isin: string;
+  info: InstrumentInformation;
+  etpInfo: ETPWidgetData;
+  bondInfo: BondWidgetData;
+}
+
 /**
  * Provide bond and stock quotes from Boerse Frankfurt (DE)
  */
 export class XETRQuoteProvider implements QuoteProvider {
+  /**
+   * caches the information of searched securities and use it next time to avoid searching again
+   */
+  private cachedInfos: Dictionary<SecurityInfo> = {};
 
   async getStockQuotes(symbols: string[]): Promise<Asset[]> {
     return this.getAssetQuotes(symbols, AssetType.STOCK);
@@ -88,41 +100,54 @@ export class XETRQuoteProvider implements QuoteProvider {
     let price: number = null;
     const symbolParts = parseSymbol(fullSymbol);
     try {
-      let isin = symbolParts.shortSymbol;
-      if (!isValidISIN(isin)) {
-        // we need to find the asset's ISIN
-        const searchResponse = await axios.get('https://api.boerse-frankfurt.de/global_search/limitedsearch/en?searchTerms=' + isin);
-        const results: XETRSearchResult[][] = searchResponse.data;
-        if (results.length > 0 && results[0].length > 0) {
-          isin = results[0][0].isin;
+      let security = this.cachedInfos[fullSymbol];
+      if (!security) {
+        security = {
+          bondInfo: null,
+          etpInfo: null,
+          info: null,
+          isin: null,
+        };
+        this.cachedInfos[fullSymbol] = security;
+      }
+
+      if (!security.isin) {
+        if (isValidISIN(symbolParts.shortSymbol)) {
+          security.isin = symbolParts.shortSymbol;
         } else {
-          isin = null;
+          // we need to find the asset's ISIN
+          const searchResponse = await axios.get('https://api.boerse-frankfurt.de/global_search/limitedsearch/en?searchTerms=' +
+            symbolParts.shortSymbol);
+          const results: XETRSearchResult[][] = searchResponse.data;
+          if (results.length > 0 && results[0].length > 0) {
+            security.isin = results[0][0].isin;
+          }
         }
       }
-      if (isin) {
-        const response = await axios.get('https://api.boerse-frankfurt.de/composite/multiple_widget?' +
-          'widgetUris=/data/instrument_information%3Fisin%3D' + isin +
-          '&widgetUris=/data/etp_master_data%3Fisin%3D' + isin +
-          '&widgetUris=%2Fdata%2Fmaster_data_bond%3Fisin%3D' + isin);
-        const widgets = response.data;
-        const infoWidget: WidgetResponse = widgets['/data/instrument_information?isin=' + isin];
-        const info: InstrumentInformation = infoWidget.data;
-        const etpInfoWidget: WidgetResponse = widgets['/data/etp_master_data?isin=' + isin];
-        let etpInfo: ETPWidgetData;
-        if (etpInfoWidget.statusCode === 2000) {
-          etpInfo = etpInfoWidget.data;
-        }
-        const bondInfoWidget: WidgetResponse = widgets['/data/master_data_bond?isin=' + isin];
-        let bondInfo: BondWidgetData;
-        if (bondInfoWidget.statusCode === 200) {
-          bondInfo = bondInfoWidget.data;
+      if (security.isin) {
+        if (!security.info) {
+          const response = await axios.get('https://api.boerse-frankfurt.de/composite/multiple_widget?' +
+            'widgetUris=/data/instrument_information%3Fisin%3D' + security.isin +
+            '&widgetUris=/data/etp_master_data%3Fisin%3D' + security.isin +
+            '&widgetUris=%2Fdata%2Fmaster_data_bond%3Fisin%3D' + security.isin);
+          const widgets = response.data;
+          const infoWidget: WidgetResponse = widgets['/data/instrument_information?isin=' + security.isin];
+          security.info = infoWidget.data;
+          const etpInfoWidget: WidgetResponse = widgets['/data/etp_master_data?isin=' + security.isin];
+          if (etpInfoWidget.statusCode === 2000) {
+            security.etpInfo = etpInfoWidget.data;
+          }
+          const bondInfoWidget: WidgetResponse = widgets['/data/master_data_bond?isin=' + security.isin];
+          if (bondInfoWidget.statusCode === 200) {
+            security.bondInfo = bondInfoWidget.data;
+          }
         }
 
-        if (info && info.defaultMic) {
+        if (security.info && security.info.defaultMic) {
           const pricePromise = new Promise<PriceInformation>((resolve, reject) => {
             const eventSource = new EventSource('https://api.boerse-frankfurt.de/data/price_information?' +
-              'isin=' + isin +
-              '&mic=' + info.defaultMic);
+              'isin=' + security.isin +
+              '&mic=' + security.info.defaultMic);
             eventSource.addEventListener('message', (event: any) => {
               const pInfo: PriceInformation = JSON.parse(event.data);
               eventSource.close();
@@ -141,10 +166,10 @@ export class XETRQuoteProvider implements QuoteProvider {
             }
             if (price) {
               let currency = 'EUR';
-              if (etpInfo) {
-                currency = etpInfo.tradingCurrency;
-              } else if (bondInfo) {
-                currency = bondInfo.issueCurrency;
+              if (security.etpInfo) {
+                currency = security.etpInfo.tradingCurrency;
+              } else if (security.bondInfo) {
+                currency = security.bondInfo.issueCurrency;
               }
 
               return {

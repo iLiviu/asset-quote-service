@@ -1,3 +1,13 @@
+## Master
+* updated dependencies
+
+### Features
+* cache info for XETR searches
+* cache internal symbols for XLON ISIN searches
+
+### Bug fixes
+* fix getting quotes from Morningstar
+
 ## 1.1.3 (2019-07-03)
 * updated dependencies
 ### Bug fixes
