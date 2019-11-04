@@ -1,4 +1,4 @@
-## Master
+## 1.1.4 (2019-11-04)
 * updated dependencies
 
 ### Features
@@ -7,6 +7,7 @@
 
 ### Bug fixes
 * fix getting quotes from Morningstar
+* fix getting quotes for bonds on BVB AeRO
 
 ## 1.1.3 (2019-07-03)
 * updated dependencies
