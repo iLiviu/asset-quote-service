@@ -99,7 +99,7 @@ export class BVBQuoteProvider implements QuoteProvider {
     let response = await axios.get(url);
     let htmlBody = response.data;
     if (segmentId === 'AERO') {
-      const submitButValue = (assetType === AssetType.BOND) ? 'ATS' : 'AeRO';
+      const submitButValue = (assetType === AssetType.BOND) ? '(?:SMT|MTS)' : 'AeRO';
       let submitBut: string;
       const submitRegex = new RegExp('<input[^>]+name="([^"]+)[^>]+value="' + submitButValue + '"');
       const submitMatch = submitRegex.exec(htmlBody);
