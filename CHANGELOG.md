@@ -1,3 +1,8 @@
+## Master
+
+### Features
+* get international stock quotes using Yahoo Finance
+
 ## 1.1.4 (2019-11-04)
 * updated dependencies
 

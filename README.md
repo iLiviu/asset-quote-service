@@ -18,6 +18,7 @@ Below is a list of all implemented providers and the markets that they support
 | IEX                       | US Stocks               |
 | London Stock Exchange     | XLON Stocks             |
 | Morningstar               | Intl Stocks             |
+| Yahoo Finance             | Intl Stocks             |
 
 
 ## Installation & Deployment

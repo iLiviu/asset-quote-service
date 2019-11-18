@@ -18,6 +18,7 @@ import {
 import { xetrQuoteProvider } from './xetr-quote-provider';
 import { xlonQuoteProvider } from './xlon-quote-provider';
 import { xstuQuoteProvider } from './xstu-quote-provider';
+import { yFinanceQuoteProvider } from './yfinance-quote-provider';
 
 interface QuoteProviderSymbols {
   provider: QuoteProvider;
@@ -249,3 +250,4 @@ quoteProviderService.registerQuoteProvider(bvbQuoteProvider);
 quoteProviderService.registerQuoteProvider(xlonQuoteProvider);
 quoteProviderService.registerQuoteProvider(morningstarQuoteProvider);
 quoteProviderService.registerQuoteProvider(ftQuoteProvider);
+quoteProviderService.registerQuoteProvider(yFinanceQuoteProvider);
