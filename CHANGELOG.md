@@ -3,6 +3,9 @@
 ### Features
 * get international stock quotes using Yahoo Finance
 
+### Bug fixes
+* Provide XLON GBP quotes in pounds instead of pence
+
 ## 1.1.4 (2019-11-04)
 * updated dependencies
 

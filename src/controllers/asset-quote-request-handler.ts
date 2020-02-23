@@ -81,6 +81,17 @@ export class AssetQuoteRequestHandler {
   }
 
   /**
+   * Quotes in pound sterling are usually provided in penny sterling, so we need to convert to pounds
+   * @param asset asset to fix quote for
+   */
+  private fixAssetQuote(asset: Asset) {
+    if (asset.currency === 'GBX' || asset.currency === 'GBp') {
+      asset.price /= 100;
+      asset.currency = 'GBP';
+    }
+  }
+
+  /**
    * Get the quotes for a given list of symbols.
    * Format for each symbol is MARKET:SYMBOL or just SYMBOL. If MARKET is not provided
    * program will use the default quote provider
@@ -189,6 +200,7 @@ export class AssetQuoteRequestHandler {
 
       promise.then((response) => {
         for (const asset of response) {
+          this.fixAssetQuote(asset);
           // update cache
           const symbolParts = parseSymbol(asset.symbol);
           const cacheKey = symbolsMap.provider.getId() + '_' + symbolParts.shortSymbol;
