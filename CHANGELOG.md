@@ -1,4 +1,4 @@
-## Master
+## 1.2.0 (2020-02-26)
 
 ### Features
 * get international stock quotes using Yahoo Finance

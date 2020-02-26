@@ -5,7 +5,7 @@ import app from './app';
 import { CONFIG } from './config';
 import logger from './logger';
 
-console.log(`AssetQuoteService Copyright (C) 2019  Liviu T Iancuta <liviu.iancuta@gmail.com>.
+console.log(`AssetQuoteService Copyright (C) 2020  Liviu T Iancuta <liviu.iancuta@gmail.com>.
   This program comes with ABSOLUTELY NO WARRANTY. This program is free software:
   you can redistribute it and/or modify it under the terms of the GNU General
   Public License as published by the Free Software Foundation, either version 3
