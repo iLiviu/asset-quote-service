@@ -5,6 +5,7 @@
 
 ### Bug fixes
 * Provide XLON GBP quotes in pounds instead of pence
+* Allow 1 character symbols
 
 ## 1.1.4 (2019-11-04)
 * updated dependencies
