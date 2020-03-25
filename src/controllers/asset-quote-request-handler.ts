@@ -105,7 +105,7 @@ export class AssetQuoteRequestHandler {
       const symbolParts = parseSymbol(symbol);
       if (symbolParts.marketCode.match(/^[A-Z0-9]{0,10}$/i)) {
         // allow up to 12 characters for symbol (for ISIN)
-        return symbolParts.shortSymbol.match(/^[A-Z0-9]{1,12}$/i);
+        return symbolParts.shortSymbol.match(/^[A-Z0-9.+_/-]{1,12}$/i);
       }
       return false;
     });
