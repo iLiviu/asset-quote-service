@@ -91,9 +91,9 @@ export class BVBQuoteProvider implements QuoteProvider {
   private async getSegmentAssetQuotes(symbols: string[], assetType: AssetType, segmentId: string): Promise<Asset[]> {
     let url;
     if (assetType === AssetType.BOND) {
-      url = 'http://bvb.ro/FinancialInstruments/Markets/Bonds';
+      url = 'https://bvb.ro/FinancialInstruments/Markets/Bonds';
     } else {
-      url = 'http://bvb.ro/FinancialInstruments/Markets/Shares';
+      url = 'https://bvb.ro/FinancialInstruments/Markets/Shares';
     }
 
     let response = await axios.get(url);
