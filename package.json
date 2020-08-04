@@ -1,6 +1,6 @@
 {
   "name": "asset-quote-service",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Retrieve quotes for various tradeable assets",
   "homepage": "https://github.com/iLiviu/asset-quote-service#readme",
   "repository": {
@@ -22,22 +22,22 @@
     "watch-ts": "tsc -w"
   },
   "devDependencies": {
-    "nodemon": "^1.18.8",
-    "tslint": "^5.11.0",
-    "typescript": "^3.2.2"
+    "nodemon": "^1.19.4",
+    "tslint": "^5.20.1",
+    "typescript": "^3.9.7"
   },
   "dependencies": {
-    "@types/body-parser": "^1.17.0",
+    "@types/body-parser": "^1.19.0",
     "@types/compression": "0.0.36",
-    "@types/eventsource": "^1.1.1",
-    "@types/express": "^4.16.0",
-    "axios": "^0.19.0",
-    "body-parser": "^1.18.3",
-    "compression": "^1.7.3",
+    "@types/eventsource": "^1.1.2",
+    "@types/express": "^4.17.7",
+    "axios": "^0.19.2",
+    "body-parser": "^1.19.0",
+    "compression": "^1.7.4",
     "eventsource": "^1.0.7",
-    "express": "^4.16.4",
-    "express-validator": "^5.3.0",
-    "node-cache": "^4.2.0",
-    "winston": "^3.1.0"
+    "express": "^4.17.1",
+    "express-validator": "^5.3.1",
+    "node-cache": "^4.2.1",
+    "winston": "^3.3.3"
   }
 }
