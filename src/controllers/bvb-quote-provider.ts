@@ -31,7 +31,7 @@ export class BVBQuoteProvider implements QuoteProvider {
   }
 
   getMutualFundQuotes(symbols: string[]): Promise<Asset[]> {
-    throw new AssetTypeNotSupportedError(AssetType.CRYPTOCURRENCY);
+    return this.getAssetQuotes(symbols, AssetType.MUTUAL_FUND);
   }
 
   getSupportedMarkets(): string[] {
@@ -92,6 +92,8 @@ export class BVBQuoteProvider implements QuoteProvider {
     let url;
     if (assetType === AssetType.BOND) {
       url = 'https://bvb.ro/FinancialInstruments/Markets/Bonds';
+    } else if (assetType === AssetType.MUTUAL_FUND) {
+      url = 'https://bvb.ro/FinancialInstruments/Markets/FundUnits';
     } else {
       url = 'https://bvb.ro/FinancialInstruments/Markets/Shares';
     }
@@ -99,7 +101,7 @@ export class BVBQuoteProvider implements QuoteProvider {
     let response = await axios.get(url);
     let htmlBody = response.data;
     if (segmentId === 'AERO') {
-      const submitButValue = (assetType === AssetType.BOND) ? '(?:SMT|MTS)' : 'AeRO';
+      const submitButValue = (assetType !== AssetType.STOCK) ? '(?:SMT|MTS)' : 'AeRO';
       let submitBut: string;
       const submitRegex = new RegExp('<input[^>]+name="([^"]+)[^>]+value="' + submitButValue + '"');
       const submitMatch = submitRegex.exec(htmlBody);

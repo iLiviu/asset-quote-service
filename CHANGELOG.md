@@ -1,3 +1,7 @@
+## Master
+### Features
+* Get quotes for funds listed on XBSE
+
 ## 1.2.1 (2020-08-04)
 ### Bug fixes
 * fix getting quotes for XBSE
