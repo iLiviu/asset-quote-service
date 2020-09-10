@@ -155,8 +155,10 @@ export class BVBQuoteProvider implements QuoteProvider {
         let userSymbol: string;
         if (symbolsMap[match[1]]) {
           userSymbol = symbolsMap[match[1]];
+          delete symbolsMap[match[1]];
         } else if (symbolsMap[match[2]]) {
           userSymbol = symbolsMap[match[2]];
+          delete symbolsMap[match[2]];
         }
         if (userSymbol) {
           const price = match[3];
@@ -169,6 +171,14 @@ export class BVBQuoteProvider implements QuoteProvider {
         }
 
         match = regex.exec(htmlBody);
+      }
+      const unknownSymbols = Object.values(symbolsMap);
+      // maybe the symbols that were not found are ETFs?
+      if (unknownSymbols.length > 0 && assetType === AssetType.STOCK) {
+        const newResults = await this.getSegmentAssetQuotes(unknownSymbols, AssetType.MUTUAL_FUND, segmentId);
+        if (newResults.length > 0) {
+          result.push(...newResults);
+        }
       }
     } else {
       logger.error('Could not parse quotes!');
