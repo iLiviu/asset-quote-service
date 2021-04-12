@@ -51,7 +51,7 @@ export class CoinbaseQuoteProvider implements QuoteProvider {
       symbol = symbol.toUpperCase();
       let currency = 'USD';
       // generate full symbol (including base currency)
-      const regex = /(.+)(USD|EUR)$/g;
+      const regex = /(.+)(USD|EUR|GBP)$/g;
       const match = regex.exec(symbol);
       if (match) {
         symbol = match[1] + '-' + match[2];
