@@ -1,6 +1,9 @@
-## Master
+## 1.2.2 (2021-04-12)
 ### Features
 * Get quotes for funds listed on XBSE
+### Bug fixes
+* Get quotes for non USDT pairs on Binance and for GBP pairs on Coinbase
+
 
 ## 1.2.1 (2020-08-04)
 ### Bug fixes
