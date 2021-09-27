@@ -139,15 +139,15 @@ export class YFinanceQuoteProvider implements QuoteProvider {
   }
 
   getForexQuotes(symbols: string[]): Promise<Asset[]> {
-    throw new AssetTypeNotSupportedError(AssetType.COMMODITY);
+    throw new AssetTypeNotSupportedError(AssetType.FOREX);
   }
 
   async getCryptoCurrencyQuotes(symbols: string[]): Promise<Asset[]> {
-    throw new AssetTypeNotSupportedError(AssetType.COMMODITY);
+    throw new AssetTypeNotSupportedError(AssetType.CRYPTOCURRENCY);
   }
 
   getMutualFundQuotes(symbols: string[]): Promise<Asset[]> {
-    throw new AssetTypeNotSupportedError(AssetType.CRYPTOCURRENCY);
+    return this.getStockQuotes(symbols);
   }
 
   getSupportedMarkets(): string[] {

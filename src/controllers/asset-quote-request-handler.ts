@@ -140,7 +140,11 @@ export class AssetQuoteRequestHandler {
           } else if (assetType === AssetType.FOREX) {
             quoteProvider = fixerQuoteProvider;
           } else if (assetType === AssetType.MUTUAL_FUND) {
-            quoteProvider = ftQuoteProvider;
+            if (isValidISIN(symbolParts.shortSymbol)) {
+              quoteProvider = ftQuoteProvider;
+            } else {
+              quoteProvider = yFinanceQuoteProvider;
+            }
           } else {
             throw new AssetTypeNotSupportedError(assetType);
           }
