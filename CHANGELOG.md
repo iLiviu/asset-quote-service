@@ -1,3 +1,7 @@
+## Master
+### Bug fixes
+* Fix getting a cached quote when exchange identifier is different
+
 ## 1.2.2 (2021-04-12)
 ### Features
 * Get quotes for funds listed on XBSE

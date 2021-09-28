@@ -155,7 +155,10 @@ export class AssetQuoteRequestHandler {
           const cacheKey = quoteProvider.getId() + '_' + symbolParts.shortSymbol;
           const cachedAsset: Asset = this.cache.get(cacheKey);
           if (cachedAsset) {
-            quotes.push(cachedAsset);
+            // create a copy of the asset to replace stored symbol with user provided one
+            const asset = Object.assign({}, cachedAsset);
+            asset.symbol = symbol;
+            quotes.push(asset);
           } else {
             requestSymbols[cacheKey] = symbol;
 
