@@ -1,4 +1,6 @@
 ## Master
+## Improvements
+* Increase Fixer cache TTL to avoid hitting new API limit
 ### Bug fixes
 * Fix getting a cached quote when exchange identifier is different
 
