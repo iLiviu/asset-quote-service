@@ -3,6 +3,7 @@ export const CONFIG = {
   DEFAULT_HTTPS_PORT: 8443,
   DEFAULT_HTTP_PORT: 8080,
   FIXER_API_KEY: '',
+  IEX_API_KEY: '',
   INVALIDASSET_CACHE_TTL: 60*60*12, //12 hours
   LOG: {
     FILENAME: 'error.log',

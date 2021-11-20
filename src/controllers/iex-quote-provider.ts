@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { CONFIG } from '../config';
 
 import { Dictionary } from '../models/dictionary';
 import {
@@ -22,12 +23,18 @@ interface IEXCryptoQuote {
  */
 export class IEXQuoteProvider implements QuoteProvider {
 
+  constructor() {
+    if (!CONFIG.IEX_API_KEY) {
+      throw new Error('IEX API key not set!');
+    }
+  }  
+
   async getStockQuotes(symbols: string[]): Promise<Asset[]> {
     const shortSymbols = getShortSymbols(symbols);
     const symbolsMap = mapStringKeyValues(shortSymbols, symbols);
     const symbolsStr = shortSymbols.join(',');
 
-    const response = await axios.get('https://api.iextrading.com/1.0/tops/last?symbols=' + symbolsStr);
+    const response = await axios.get(`https://cloud.iexapis.com/stable/tops/last?token=${CONFIG.IEX_API_KEY}&symbols=${symbolsStr}`);
     const quotes: IEXQuote[] = response.data;
     const result: Asset[] = [];
     for (const quote of quotes) {
@@ -51,38 +58,15 @@ export class IEXQuoteProvider implements QuoteProvider {
   }
 
   getForexQuotes(symbols: string[]): Promise<Asset[]> {
-    throw new AssetTypeNotSupportedError(AssetType.COMMODITY);
+    throw new AssetTypeNotSupportedError(AssetType.FOREX);
   }
 
   async getCryptoCurrencyQuotes(symbols: string[]): Promise<Asset[]> {
-    const requestedSymbols: Dictionary<string> = {};
-    for (const fullSymbol of symbols) {
-      const symbolParts = parseSymbol(fullSymbol);
-      let symbol = symbolParts.shortSymbol.toUpperCase().replace(/USD$/i, 'USDT'); // iex only has USDT pairs for now
-      if (!symbol.match(/USDT$/i)) {
-        symbol = symbol + 'USDT';
-      }
-      requestedSymbols[symbol] = fullSymbol;
-    }
-
-    const response = await axios.get('https://api.iextrading.com/1.0/stock/market/crypto');
-    const quotes: IEXCryptoQuote[] = response.data;
-    const result: Asset[] = [];
-    for (const quote of quotes) {
-      if (requestedSymbols[quote.symbol]) {
-        result.push({
-          currency: 'USD',
-          price: +quote.latestPrice,
-          symbol: requestedSymbols[quote.symbol],
-        });
-      }
-    }
-
-    return result;
+    throw new AssetTypeNotSupportedError(AssetType.CRYPTOCURRENCY);
   }
 
   getMutualFundQuotes(symbols: string[]): Promise<Asset[]> {
-    throw new AssetTypeNotSupportedError(AssetType.CRYPTOCURRENCY);
+    throw new AssetTypeNotSupportedError(AssetType.MUTUAL_FUND);
   }
 
   getSupportedMarkets(): string[] {
