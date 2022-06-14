@@ -4,6 +4,7 @@
 ### Bug fixes
 * Fix getting a cached quote when exchange identifier is different
 * Switch from discontinued IEX API to IEX Cloud API
+* fix getting quotes for XBSE/AERO
 
 ## 1.2.2 (2021-04-12)
 ### Features

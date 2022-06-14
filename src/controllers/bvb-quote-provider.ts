@@ -146,7 +146,7 @@ export class BVBQuoteProvider implements QuoteProvider {
     }
 
     // extract quote
-    const regex = new RegExp('/FinancialInstrumentsDetails\\.aspx\\?s=([^"&]+)[^>]*><strong>[^<]*</strong></a><p[^>]*>([^<]+)</p>' +
+    const regex = new RegExp('/FinancialInstrumentsDetails\\.aspx\\?s=([^"&]+)[^>]*><b>[^<]*</b></a><p[^>]*>([^<]+)</p>' +
       '\\s*</td><td[^>]*>[^<]*</td><td[^>]*>\\s*([0-9,.]+)', 'g');
     const result: Asset[] = [];
     let match = regex.exec(htmlBody);
