@@ -111,7 +111,7 @@ export class YFinanceQuoteProvider implements QuoteProvider {
     const symbolsStr = formattedSymbols.join(',');
     const result: Asset[] = [];
     try {
-      const response = await axios.get('https://query1.finance.yahoo.com/v7/finance/quote?' +
+      const response = await axios.get('https://query1.finance.yahoo.com/v6/finance/quote?' +
         'lang=en-US&region=US&corsDomain=finance.yahoo.com&symbols=' + symbolsStr);
       const yResponse: YFinanceRequestResponse = response.data;
       const quotes: YFinanceQuote[] = yResponse.quoteResponse.result;

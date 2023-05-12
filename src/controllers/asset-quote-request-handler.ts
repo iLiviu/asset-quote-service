@@ -127,7 +127,7 @@ export class AssetQuoteRequestHandler {
             if (isValidISIN(symbolParts.shortSymbol)) {
               quoteProvider = xetrQuoteProvider;
             } else if (isValidMIC(symbolParts.marketCode)) {
-              quoteProvider = morningstarQuoteProvider;
+              quoteProvider = yFinanceQuoteProvider;
             } else {
               quoteProvider = iexQuoteProvider;
             }
