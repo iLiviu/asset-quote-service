@@ -1,4 +1,5 @@
 import axios from 'axios';
+import NodeCache from 'node-cache';
 
 import logger from '../logger';
 import { Dictionary } from '../models/dictionary';
@@ -75,6 +76,9 @@ const YAHOO_EXCHANGE_CODES: Dictionary<string> = {
   BVCA: 'CR',
 };
 
+const CRUMB_CACHE_KEY = 'ycrumb';
+const COOKIES_CACHE_KEY = 'ycookies';
+
 interface YFinanceQuote {
   currency: string;
   symbol: string;
@@ -95,7 +99,12 @@ interface YFinanceRequestResponse {
  * Provide stock quotes from Yahoo Finance
  */
 export class YFinanceQuoteProvider implements QuoteProvider {
+  private cache: NodeCache;
 
+  constructor() {
+    // we store yahoo session data in cache
+    this.cache = new NodeCache({ stdTTL: 24 * 60 * 60 });
+  }
   async getStockQuotes(symbols: string[]): Promise<Asset[]> {
     const formattedSymbols: string[] = [];
     for (const fullSymbol of symbols) {
@@ -111,8 +120,35 @@ export class YFinanceQuoteProvider implements QuoteProvider {
     const symbolsStr = formattedSymbols.join(',');
     const result: Asset[] = [];
     try {
-      const response = await axios.get('https://query1.finance.yahoo.com/v6/finance/quote?' +
-        'lang=en-US&region=US&corsDomain=finance.yahoo.com&symbols=' + symbolsStr);
+      let crumb: string = this.cache.get(CRUMB_CACHE_KEY);
+      let cookies = "";
+      if (!crumb) {
+        let yResponse = await axios.get('https://fc.yahoo.com/', {
+          //we will get a 404 message for the above request, but all we need are the cookies
+          validateStatus: (status: number) => {
+            return (status >= 200 && status < 300) || status == 404
+          }
+        });
+        cookies = yResponse.headers['set-cookie'].join('; ');
+        this.cache.set(COOKIES_CACHE_KEY, cookies);
+        yResponse = await axios.get('https://query1.finance.yahoo.com/v1/test/getcrumb',
+          { headers: { Cookie: cookies } });
+        crumb = yResponse.data;
+        this.cache.set(CRUMB_CACHE_KEY, crumb);
+      } else {
+        cookies = this.cache.get(COOKIES_CACHE_KEY);
+      }
+      let response = await axios.get('https://query1.finance.yahoo.com/v7/finance/quote',
+        {
+          headers: { Cookie: cookies },
+          params: {
+            'crumb': crumb,
+            'lang': 'en-US',
+            'region': 'US',
+            'corsDomain': 'finance.yahoo.com',
+            'symbols': symbolsStr,
+          }
+        });
       const yResponse: YFinanceRequestResponse = response.data;
       const quotes: YFinanceQuote[] = yResponse.quoteResponse.result;
       for (const quote of quotes) {
@@ -123,9 +159,11 @@ export class YFinanceQuoteProvider implements QuoteProvider {
             symbol: symbolsMap[quote.symbol],
           });
         }
+
       }
     } catch (err) {
       logger.error(`Could not get YFinance quotes for ${symbolsStr}: ${err}`);
+      this.cache.del([COOKIES_CACHE_KEY,CRUMB_CACHE_KEY]);
     }
     return result;
   }
