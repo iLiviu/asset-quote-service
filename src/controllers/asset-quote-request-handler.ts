@@ -129,7 +129,7 @@ export class AssetQuoteRequestHandler {
             } else if (isValidMIC(symbolParts.marketCode)) {
               quoteProvider = yFinanceQuoteProvider;
             } else {
-              quoteProvider = iexQuoteProvider;
+              quoteProvider = yFinanceQuoteProvider;
             }
           } else if (assetType === AssetType.BOND) {
             quoteProvider = xetrQuoteProvider;
@@ -261,7 +261,7 @@ export class AssetQuoteRequestHandler {
 
 quoteProviderService.registerQuoteProvider(coinbaseQuoteProvider);
 quoteProviderService.registerQuoteProvider(binanceQuoteProvider);
-quoteProviderService.registerQuoteProvider(iexQuoteProvider);
+// quoteProviderService.registerQuoteProvider(iexQuoteProvider);
 quoteProviderService.registerQuoteProvider(cmeQuoteProvider);
 // quoteProviderService.registerQuoteProvider(xstuQuoteProvider);
 quoteProviderService.registerQuoteProvider(xetrQuoteProvider);
