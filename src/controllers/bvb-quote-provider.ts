@@ -5,6 +5,8 @@ import logger from '../logger';
 import { Dictionary } from '../models/dictionary';
 import { Asset, AssetType, AssetTypeNotSupportedError, parseSymbol, QuoteProvider } from './quote-provider';
 
+const BVB_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.80 Safari/537.36';
+
 /**
  * Provide bond and stock quotes from Bursa de Valori Bucuresti (RO)
  */
@@ -98,7 +100,12 @@ export class BVBQuoteProvider implements QuoteProvider {
       url = 'https://bvb.ro/FinancialInstruments/Markets/Shares';
     }
 
-    let response = await axios.get(url);
+    let response = await axios.get(url, {
+      headers: {
+        'Cookie': 'BVBCulturePref=en-US',
+        'User-Agent': BVB_USER_AGENT,
+      },
+    });
     let htmlBody = response.data;
     if (segmentId === 'AERO') {
       const submitButValue = (assetType !== AssetType.STOCK) ? '(?:SMT|MTS)' : 'AeRO';
@@ -131,8 +138,8 @@ export class BVBQuoteProvider implements QuoteProvider {
       response = await axios.post(url, postData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.80 Safari/537.36',
+          'Cookie': 'BVBCulturePref=en-US',
+          'User-Agent': BVB_USER_AGENT,
         },
       });
       htmlBody = response.data;
