@@ -1,5 +1,9 @@
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import NodeCache from 'node-cache';
+import querystring from 'querystring';
+import { wrapper } from 'axios-cookiejar-support';
+import { CookieJar } from 'tough-cookie';
+
 
 import logger from '../logger';
 import { Dictionary } from '../models/dictionary';
@@ -79,6 +83,14 @@ const YAHOO_EXCHANGE_CODES: Dictionary<string> = {
 const CRUMB_CACHE_KEY = 'ycrumb';
 const COOKIES_CACHE_KEY = 'ycookies';
 
+const USERAGENT_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Upgrade-Insecure-Requests': '1',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+  'Dnt': '1'
+};
+
 interface YFinanceQuote {
   currency: string;
   symbol: string;
@@ -122,25 +134,61 @@ export class YFinanceQuoteProvider implements QuoteProvider {
     try {
       let crumb: string = this.cache.get(CRUMB_CACHE_KEY);
       let cookies = "";
+      let response: AxiosResponse<any>;
       if (!crumb) {
-        let yResponse = await axios.get('https://fc.yahoo.com/', {
-          //we will get a 404 message for the above request, but all we need are the cookies
-          validateStatus: (status: number) => {
-            return (status >= 200 && status < 300) || status == 404
+        const jar = new CookieJar();
+        const httpClient = wrapper(axios.create({ jar }));
+        response = await httpClient.get('https://yahoo.com/',
+          {
+            headers: USERAGENT_HEADERS
+          });
+        // check if we need to agree to cookie policy
+        if (response.request.res.responseUrl.indexOf('collectConsent') >= 0) {
+          let sessionId: string;
+          let regex = new RegExp('name=\?"sessionId\?"[^>]+value=\?"([^"\]+)', 'g');
+          let match = regex.exec(response.data);
+          if (match) {
+            sessionId = match[1];
           }
-        });
-        cookies = yResponse.headers['set-cookie'].join('; ');
+          regex = new RegExp('name=\?"csrfToken\?"[^>]+value=\?"([^"\]+)', 'g');
+          match = regex.exec(response.data);
+          if (match) {
+            const token = match[1];
+            const postData = querystring.stringify({
+              'csrfToken': token,
+              'sessionId': sessionId,
+              'originalDoneUrl': 'https://finance.yahoo.com/?guccounter=1',
+              'namespace': 'yahoo',
+              'agree': 'agree',
+            });
+            response = await httpClient.post(response.request.res.responseUrl, postData, {
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                ...USERAGENT_HEADERS
+              },
+            });
+          }
+        }
+        cookies = await jar.getCookieString('https://yahoo.com');
         this.cache.set(COOKIES_CACHE_KEY, cookies);
-        yResponse = await axios.get('https://query1.finance.yahoo.com/v1/test/getcrumb',
-          { headers: { Cookie: cookies } });
-        crumb = yResponse.data;
+        response = await axios.get('https://query1.finance.yahoo.com/v1/test/getcrumb',
+          {
+            headers: {
+              Cookie: cookies,
+              ...USERAGENT_HEADERS
+            },
+          });
+        crumb = response.data;
         this.cache.set(CRUMB_CACHE_KEY, crumb);
       } else {
         cookies = this.cache.get(COOKIES_CACHE_KEY);
       }
-      let response = await axios.get('https://query1.finance.yahoo.com/v7/finance/quote',
+      response = await axios.get('https://query1.finance.yahoo.com/v7/finance/quote',
         {
-          headers: { Cookie: cookies },
+          headers: {
+            Cookie: cookies,
+            ...USERAGENT_HEADERS
+          },
           params: {
             'crumb': crumb,
             'lang': 'en-US',
@@ -163,7 +211,7 @@ export class YFinanceQuoteProvider implements QuoteProvider {
       }
     } catch (err) {
       logger.error(`Could not get YFinance quotes for ${symbolsStr}: ${err}`);
-      this.cache.del([COOKIES_CACHE_KEY,CRUMB_CACHE_KEY]);
+      this.cache.del([COOKIES_CACHE_KEY, CRUMB_CACHE_KEY]);
     }
     return result;
   }
