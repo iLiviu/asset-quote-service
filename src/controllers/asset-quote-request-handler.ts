@@ -152,7 +152,7 @@ export class AssetQuoteRequestHandler {
 
         if (quoteProvider) {
           // check cache first
-          const cacheKey = quoteProvider.getId() + '_' + symbolParts.shortSymbol;
+          const cacheKey = quoteProvider.getId() + '_' + symbolParts.marketCode + '_' + symbolParts.shortSymbol;
           const cachedAsset: Asset = this.cache.get(cacheKey);
           if (cachedAsset) {
             // create a copy of the asset to replace stored symbol with user provided one
@@ -210,7 +210,7 @@ export class AssetQuoteRequestHandler {
           this.fixAssetQuote(asset);
           // update cache
           const symbolParts = parseSymbol(asset.symbol);
-          const cacheKey = symbolsMap.provider.getId() + '_' + symbolParts.shortSymbol;
+          const cacheKey = symbolsMap.provider.getId() + '_' + symbolParts.marketCode + '_' + symbolParts.shortSymbol;
           this.cache.set(cacheKey, asset, asset.price ? CONFIG.DEFAULT_CACHE_TTL : CONFIG.INVALIDASSET_CACHE_TTL);
 
           // replace processed symbol with user provided one
