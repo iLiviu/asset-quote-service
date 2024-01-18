@@ -4,13 +4,17 @@ import querystring from 'querystring';
 import logger from '../logger';
 import { Dictionary } from '../models/dictionary';
 import { Asset, AssetType, AssetTypeNotSupportedError, parseSymbol, QuoteProvider } from './quote-provider';
+import { CookieJar } from 'tough-cookie';
+import { wrapper } from 'axios-cookiejar-support';
 
-const BVB_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.80 Safari/537.36';
+const BVB_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 /**
  * Provide bond and stock quotes from Bursa de Valori Bucuresti (RO)
  */
 export class BVBQuoteProvider implements QuoteProvider {
+
+  private sessionCookies: string;
 
   async getStockQuotes(symbols: string[]): Promise<Asset[]> {
     return this.getAssetQuotes(symbols, AssetType.STOCK);
@@ -55,24 +59,64 @@ export class BVBQuoteProvider implements QuoteProvider {
 
   }
 
+  private async extractSessionCookies(): Promise<string> {
+    const jar = new CookieJar();
+    const httpClient = wrapper(axios.create({ jar }));
+    await httpClient.get('https://bvb.ro/FinancialInstruments/Markets/Shares', {
+      headers: {
+        'Cookie': 'BVBCulturePref=en-US',
+        'User-Agent': BVB_USER_AGENT,
+      }
+    });
+    let cookies = jar.getCookieStringSync('https://bvb.ro');
+    return cookies;
+  }
+
   private async getAssetQuotes(symbols: string[], assetType: AssetType): Promise<Asset[]> {
+    const certificateSymbols: string[] = [];
+    const warrantSymbols: string[] = [];
     const mainSegmentSymbols: string[] = [];
     const aeroSymbols: string[] = [];
+    const warrantPattern = new RegExp('^(:?RC|RB|EB|BK)[A-Z0-9]{2,}[0-9]{2,2}[A-Z][0-9]$');
+    const certificatePattern = new RegExp('^(:?RC|RB|EB|BK)[A-Z0-9]{3,}$');
+
     for (const fullSymbol of symbols) {
       const symbolParts = parseSymbol(fullSymbol);
       if (symbolParts.marketCode === 'AERO') {
         aeroSymbols.push(fullSymbol);
-      } else {
-        mainSegmentSymbols.push(fullSymbol);
+      } else {        
+        if (assetType  === AssetType.STOCK && warrantPattern.exec(symbolParts.shortSymbol)) {
+          warrantSymbols.push(fullSymbol);
+        } else if (assetType  === AssetType.STOCK && certificatePattern.exec(symbolParts.shortSymbol)) {
+          certificateSymbols.push(fullSymbol);
+        } else {
+          mainSegmentSymbols.push(fullSymbol);
+        }
       }
-
     }
+
     const promises: Array<Promise<Asset[]>> = [];
     if (mainSegmentSymbols.length > 0) {
-      promises.push(this.getSegmentAssetQuotes(mainSegmentSymbols, assetType, ''));
+      promises.push(this.getSegmentAssetQuotes(mainSegmentSymbols, assetType, 'Shares'));
     }
     if (aeroSymbols.length > 0) {
       promises.push(this.getSegmentAssetQuotes(aeroSymbols, assetType, 'AERO'));
+    }
+    if (certificateSymbols.length > 0) {
+      if (!this.sessionCookies) {
+        this.sessionCookies = await this.extractSessionCookies();
+      }
+      for (let symbol of certificateSymbols) {
+        promises.push(this.getAssetQuote(symbol, assetType));
+      }
+    }
+    if (warrantSymbols.length > 0) {
+      if (!this.sessionCookies) {
+        this.sessionCookies = await this.extractSessionCookies();
+      }
+      for (let symbol of warrantSymbols) {
+        promises.push(this.getAssetQuote(symbol, assetType,));
+      }
     }
     const results = await Promise.all(promises);
     let quotes: Asset[] = [];
@@ -191,6 +235,44 @@ export class BVBQuoteProvider implements QuoteProvider {
       logger.error('Could not parse quotes!');
     }
     return result;
+  }
+
+  /**
+   * Return quote for a given symbol
+   * @param symbol symbol to return the quote for
+   * @param assetType the type of symbol passed (stock or bond)
+   */
+  private async getAssetQuote(symbol: string, assetType: AssetType): Promise<Asset[]> {
+    const symbolParts = parseSymbol(symbol);
+    let response = await axios.get('https://bvb.ro/PartialInfo/SymbolHover.aspx?s=' + symbolParts.shortSymbol, {
+      headers: {
+        'Cookie': 'BVBCulturePref=en-US; ' + this.sessionCookies,
+        'User-Agent': BVB_USER_AGENT,
+        'X-Requested-With': 'XMLHttpRequest',
+        'Referer': 'https://bvb.ro/FinancialInstruments/Markets/Shares',
+      },
+    });
+    let htmlBody = response.data;
+
+    // extract quote
+    const regex = new RegExp('<span[^>]+id="HeaderPI_price"[^>]*>([0-9,.]+)', '');
+    const result: Asset[] = [];
+    let match = regex.exec(htmlBody);
+    if (match) {
+      const price = match[1];
+      result.push({
+        currency: 'RON',
+        percentPrice: assetType === AssetType.BOND,
+        price: +price,
+        symbol: symbol,
+      });
+
+      return result;
+    } else {
+      logger.error(`Could not parse quote for ${symbol}!`);
+    }
+
+    return [];
   }
 
 }
