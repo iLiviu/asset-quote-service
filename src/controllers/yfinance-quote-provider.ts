@@ -8,7 +8,7 @@ import { CookieJar } from 'tough-cookie';
 import logger from '../logger';
 import { Dictionary } from '../models/dictionary';
 import {
-  Asset, AssetType, AssetTypeNotSupportedError, mapStringKeyValues, parseSymbol, QuoteProvider,
+  Asset, AssetType, AssetTypeNotSupportedError, isValidISIN, mapStringKeyValues, parseSymbol, QuoteProvider,
 } from './quote-provider';
 
 // map MIC codes to yahoo short exchange codes
@@ -117,15 +117,20 @@ export class YFinanceQuoteProvider implements QuoteProvider {
     // we store yahoo session data in cache
     this.cache = new NodeCache({ stdTTL: 24 * 60 * 60 });
   }
-  async getStockQuotes(symbols: string[]): Promise<Asset[]> {
+
+  private async getAssetQuotes(symbols: string[], assetsType: AssetType): Promise<Asset[]> {
     const formattedSymbols: string[] = [];
     for (const fullSymbol of symbols) {
       const symbolParts = parseSymbol(fullSymbol);
-      const yMarketCode = YAHOO_EXCHANGE_CODES[symbolParts.marketCode];
-      if (yMarketCode) {
-        formattedSymbols.push(symbolParts.shortSymbol + '.' + yMarketCode);
+      if (assetsType === AssetType.BOND && isValidISIN(symbolParts.shortSymbol)) {
+        formattedSymbols.push(symbolParts.shortSymbol + '.SG');
       } else {
-        formattedSymbols.push(symbolParts.shortSymbol);
+        const yMarketCode = YAHOO_EXCHANGE_CODES[symbolParts.marketCode];
+        if (yMarketCode) {
+          formattedSymbols.push(symbolParts.shortSymbol + '.' + yMarketCode);
+        } else {
+          formattedSymbols.push(symbolParts.shortSymbol);
+        }
       }
     }
     const symbolsMap = mapStringKeyValues(formattedSymbols, symbols);
@@ -204,6 +209,7 @@ export class YFinanceQuoteProvider implements QuoteProvider {
           result.push({
             currency: quote.currency,
             price: quote.regularMarketPrice,
+            percentPrice: assetsType === AssetType.BOND,
             symbol: symbolsMap[quote.symbol],
           });
         }
@@ -216,8 +222,12 @@ export class YFinanceQuoteProvider implements QuoteProvider {
     return result;
   }
 
+  async getStockQuotes(symbols: string[]): Promise<Asset[]> {
+    return this.getAssetQuotes(symbols, AssetType.STOCK);
+  }
+
   getBondQuotes(symbols: string[]): Promise<Asset[]> {
-    throw new AssetTypeNotSupportedError(AssetType.BOND);
+    return this.getAssetQuotes(symbols, AssetType.BOND);
   }
 
   getCommodityQuotes(symbols: string[]): Promise<Asset[]> {
