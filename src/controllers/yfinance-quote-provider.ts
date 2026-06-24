@@ -3,7 +3,7 @@ import NodeCache from 'node-cache';
 import querystring from 'querystring';
 import { wrapper } from 'axios-cookiejar-support';
 import { CookieJar } from 'tough-cookie';
-
+import { RequestBuilder } from "ts-curl-impersonate";
 
 import logger from '../logger';
 import { Dictionary } from '../models/dictionary';
@@ -90,6 +90,7 @@ const USERAGENT_HEADERS = {
   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
   'Dnt': '1'
 };
+const SEC_CH_UA_CHROME = '\\"Chromium\\";v=\\"116\\", \\"Not A;Brand\\";v=\\"99\\", \\"Google Chrome\\";v=\\"116\\"';
 
 interface YFinanceQuote {
   currency: string;
@@ -176,33 +177,33 @@ export class YFinanceQuoteProvider implements QuoteProvider {
         }
         cookies = await jar.getCookieString('https://yahoo.com');
         this.cache.set(COOKIES_CACHE_KEY, cookies);
-        response = await axios.get('https://query1.finance.yahoo.com/v1/test/getcrumb',
-          {
-            headers: {
-              Cookie: cookies,
-              ...USERAGENT_HEADERS
-            },
-          });
-        crumb = response.data;
+
+        const reqBuilder = await new RequestBuilder()
+          .url('https://query1.finance.yahoo.com/v1/test/getcrumb')
+          .preset({ name: "chrome", version: "116" })
+          .header('Cookie', cookies)
+          .header('sec-ch-ua', SEC_CH_UA_CHROME)
+          .send();
+        crumb = reqBuilder.response;
         this.cache.set(CRUMB_CACHE_KEY, crumb);
       } else {
         cookies = this.cache.get(COOKIES_CACHE_KEY);
       }
-      response = await axios.get('https://query1.finance.yahoo.com/v7/finance/quote',
-        {
-          headers: {
-            Cookie: cookies,
-            ...USERAGENT_HEADERS
-          },
-          params: {
-            'crumb': crumb,
-            'lang': 'en-US',
-            'region': 'US',
-            'corsDomain': 'finance.yahoo.com',
-            'symbols': symbolsStr,
-          }
-        });
-      const yResponse: YFinanceRequestResponse = response.data;
+      const requestParams = new URLSearchParams({
+        'crumb': crumb,
+        'lang': 'en-US',
+        'region': 'US',
+        'corsDomain': 'finance.yahoo.com',
+        'symbols': symbolsStr,
+      })
+      const reqBuilder = await new RequestBuilder()
+        .url('https://query1.finance.yahoo.com/v7/finance/quote?' + requestParams.toString())
+        .preset({ name: "chrome", version: "116" })
+          .header('sec-ch-ua', SEC_CH_UA_CHROME)
+        .header('Cookie', cookies)
+        .send();
+
+      const yResponse: YFinanceRequestResponse = JSON.parse(reqBuilder.response);
       const quotes: YFinanceQuote[] = yResponse.quoteResponse.result;
       for (const quote of quotes) {
         if (symbolsMap[quote.symbol]) {
