@@ -152,7 +152,7 @@ export class BVBQuoteProvider implements QuoteProvider {
     });
     let htmlBody = response.data;
     if (segmentId === 'AERO') {
-      const submitButValue = (assetType !== AssetType.STOCK) ? '(?:SMT|MTS)' : 'AeRO';
+      const submitButValue = 'AeRO';
       let submitBut: string;
       const submitRegex = new RegExp('<input[^>]+name="([^"]+)[^>]+value="' + submitButValue + '"');
       const submitMatch = submitRegex.exec(htmlBody);
