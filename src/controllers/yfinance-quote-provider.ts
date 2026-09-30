@@ -6,79 +6,12 @@ import { CookieJar } from 'tough-cookie';
 import { RequestBuilder } from "ts-curl-impersonate";
 
 import logger from '../logger';
-import { Dictionary } from '../models/dictionary';
 import {
   Asset, AssetType, AssetTypeNotSupportedError, isValidISIN, mapStringKeyValues, parseSymbol, QuoteProvider,
 } from './quote-provider';
+import { YAHOO_EXCHANGE_CODES } from '../shared/yfinance.consts';
 
-// map MIC codes to yahoo short exchange codes
-const YAHOO_EXCHANGE_CODES: Dictionary<string> = {
-  XCBT: 'CBT',
-  XCME: 'CME',
-  IFUS: 'NYB',
-  XNYM: 'NYM',
-  XBUE: 'BA',
-  XWBO: 'VI',
-  XASX: 'AX',
-  XBRU: 'BR',
-  BVMF: 'SA',
-  XTSE: 'TO',
-  XCNQ: 'CN',
-  NEOE: 'NE',
-  XTSX: 'V',
-  XSGO: 'SN',
-  XSSC: 'SS',
-  XSEC: 'SZ',
-  XPRA: 'PR',
-  XCSE: 'CO',
-  XCAI: 'CA',
-  XTAL: 'TL',
-  XHEL: 'HE',
-  XPAR: 'PA',
-  XBER: 'BE',
-  XFRA: 'F',
-  XETR: 'DE',
-  XHAM: 'HM',
-  XHAN: 'HA',
-  XDUS: 'DU',
-  XMUN: 'MU',
-  XSTU: 'SG',
-  XATH: 'AT',
-  XHKG: 'HK',
-  XBUD: 'BD',
-  XICE: 'IC',
-  XBOM: 'BO',
-  XNSE: 'NS',
-  XIDX: 'JK',
-  XDUB: 'IR',
-  XTAE: 'TA',
-  ETLX: 'TI',
-  XMIL: 'MI',
-  XTKS: 'T',
-  XRIS: 'RG',
-  NASB: 'VS',
-  XKLS: 'KL',
-  BIVA: 'MX',
-  XAMS: 'AS',
-  XNZE: 'NZ',
-  XOSL: 'OL',
-  XLIS: 'LS',
-  DSMD: 'QA',
-  MISX: 'ME',
-  XSES: 'SI',
-  XJSE: 'JO',
-  XKRX: 'KS',
-  XKOS: 'KQ',
-  XMAD: 'MC',
-  XSAU: 'SAU',
-  XOME: 'ST',
-  XSWX: 'SW',
-  XTAI: 'TW',
-  XBKK: 'BK',
-  XIST: 'IS',
-  XLON: 'L',
-  BVCA: 'CR',
-};
+
 
 const CRUMB_CACHE_KEY = 'ycrumb';
 const COOKIES_CACHE_KEY = 'ycookies';

@@ -31,6 +31,7 @@ app.get('/', (req, res) => {
   res.send('Hello there');
 });
 app.post('/stock', quoteHandler.stockRequest);
+app.post('/stock/history', quoteHandler.stockHistoryRequest);
 app.post('/crypto', quoteHandler.cryptocurrencyRequest);
 app.post('/commodity', quoteHandler.commodityRequest);
 app.post('/bond', quoteHandler.bondRequest);

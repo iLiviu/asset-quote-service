@@ -10,15 +10,14 @@ import { cmeQuoteProvider } from './cme-quote-provider';
 import { coinbaseQuoteProvider } from './coinbase-quote-provider';
 import { fixerQuoteProvider } from './fixer-quote-provider';
 import { ftQuoteProvider } from './ft-quote-provider';
-import { iexQuoteProvider } from './iex-quote-provider';
 import { morningstarQuoteProvider } from './morningstar-quote-provider';
 import {
   Asset, AssetType, AssetTypeNotSupportedError, isValidISIN, isValidMIC, parseSymbol, QuoteError, QuoteProvider, quoteProviderService,
 } from './quote-provider';
 import { xetrQuoteProvider } from './xetr-quote-provider';
 import { xlonQuoteProvider } from './xlon-quote-provider';
-import { xstuQuoteProvider } from './xstu-quote-provider';
 import { yFinanceQuoteProvider } from './yfinance-quote-provider';
+import { adjustWeekendToFriday, getStockHistory, toDateStr } from './stock-history-provider';
 
 interface QuoteProviderSymbols {
   provider: QuoteProvider;
@@ -70,6 +69,47 @@ export class AssetQuoteRequestHandler {
 
   mutualFundRequest = (req: Request, res: Response) => {
     this.handleRequest(AssetType.MUTUAL_FUND, req, res);
+  }
+
+  /**
+   * Handle HTTP request for stock historical prices
+   */
+  stockHistoryRequest = async (req: Request, res: Response) => {
+    if (req.body.symbols && req.body.symbols.length && req.body.startDate) {
+      try {
+        logger.debug(`HTTP Request (stock history): ${JSON.stringify(req.body)}`);
+        const symbols: string[] = req.body.symbols;
+        let startDate: string = req.body.startDate;
+        let endDate: string | undefined = req.body.endDate;
+
+        // Stock market is closed on weekends. Roll back weekend dates to preceding Friday.
+        startDate = adjustWeekendToFriday(startDate);
+
+        if (endDate) {
+          endDate = adjustWeekendToFriday(endDate);
+        } else {
+          const now = new Date();
+          const day = now.getUTCDay();
+          if (day === 0 || day === 6) {
+            endDate = adjustWeekendToFriday(toDateStr(now));
+          }
+        }
+
+        const promises = symbols.map((symbol: string) =>
+          getStockHistory(symbol.trim().toUpperCase(), startDate, endDate),
+        );
+        const results = await Promise.all(promises);
+
+        logger.debug(`HTTP Response (stock history): ${JSON.stringify(results)}`);
+        res.json(results);
+      } catch (e) {
+        res.status(500).json({ code: 500, message: 'Generic error' });
+        logger.error(e.stack);
+      }
+    } else {
+      this.sendInvalidRequestResponse(res);
+      logger.debug(`Invalid HTTP Request: ${JSON.stringify(req.body)}`);
+    }
   }
 
   /**
@@ -261,9 +301,7 @@ export class AssetQuoteRequestHandler {
 
 quoteProviderService.registerQuoteProvider(coinbaseQuoteProvider);
 quoteProviderService.registerQuoteProvider(binanceQuoteProvider);
-// quoteProviderService.registerQuoteProvider(iexQuoteProvider);
 quoteProviderService.registerQuoteProvider(cmeQuoteProvider);
-// quoteProviderService.registerQuoteProvider(xstuQuoteProvider);
 quoteProviderService.registerQuoteProvider(xetrQuoteProvider);
 quoteProviderService.registerQuoteProvider(bvbQuoteProvider);
 quoteProviderService.registerQuoteProvider(xlonQuoteProvider);
