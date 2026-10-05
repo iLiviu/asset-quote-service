@@ -1,5 +1,7 @@
 import YahooFinance from 'yahoo-finance2';
 import { ChartResultArray } from 'yahoo-finance2/esm/src/modules/chart';
+import https from 'node:https';
+import type { RequestOptions, IncomingMessage } from 'node:http';
 
 import logger from '../logger';
 import { parseSymbol } from './quote-provider';
@@ -20,7 +22,7 @@ export interface HistoricalPriceRecord {
   price: number | null;
 }
 
-export interface StockHistory {
+export interface AssetHistory {
   symbol: string;
   currency?: string;
   history: HistoricalPriceRecord[];
@@ -47,6 +49,81 @@ export function _getCache(): Map<string, CachedHistory> {
   return historyCache;
 }
 
+export interface StdFetchOptions {
+  method?: string;
+  headers?: Record<string, string | string[] | undefined>;
+  body?: string | Buffer;
+  timeout?: number;
+}
+
+export interface StdFetchResponse {
+  ok: boolean;
+  status: number;
+  statusText: string;
+  headers: Map<string, string | string[] | undefined>;
+  text: () => Promise<string>;
+  json: <T = unknown>() => Promise<T>;
+}
+
+/**
+ * Lightweight fetch substitute using Node.js built-in `https` module.
+ * Useful for Node environments (< v18) lacking global `fetch`.
+ */
+export function stdFetch(
+  url: string | URL,
+  options: StdFetchOptions = {}
+): Promise<StdFetchResponse> {
+  return new Promise((resolve, reject) => {
+    const targetUrl = typeof url === 'string' ? new URL(url) : url;
+
+    const requestOptions: RequestOptions = {
+      method: options.method || 'GET',
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        ...options.headers,
+      },
+      timeout: options.timeout ?? 30000,
+    };
+
+    const req = https.request(targetUrl, requestOptions, (res: IncomingMessage) => {
+      const chunks: Buffer[] = [];
+
+      res.on('data', (chunk: Buffer) => chunks.push(chunk));
+
+      res.on('end', () => {
+        const bodyBuffer = Buffer.concat(chunks);
+        const bodyText = bodyBuffer.toString('utf-8');
+        const statusCode = res.statusCode ?? 500;
+
+        const response: StdFetchResponse = {
+          ok: statusCode >= 200 && statusCode < 300,
+          status: statusCode,
+          statusText: res.statusMessage ?? '',
+          headers: new Map(Object.entries(res.headers)),
+          text: async () => bodyText,
+          json: async <T = unknown>() => JSON.parse(bodyText) as T,
+        };
+
+        resolve(response);
+      });
+    });
+
+    req.on('error', (err: Error) => reject(err));
+
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error(`Request to ${targetUrl.hostname} timed out`));
+    });
+
+    if (options.body) {
+      req.write(options.body);
+    }
+
+    req.end();
+  });
+}
+
 /**
  * Fetch daily historical prices from Yahoo Finance for a given date range.
  * @param symbol   Ticker symbol
@@ -71,11 +148,16 @@ async function fetchFromYahoo(
 
   // Yahoo Finance uses different exchange codes than the MIC codes used in our system.
   const yMarketCode = YAHOO_EXCHANGE_CODES[symbolParts.marketCode];
-  let formattedSymbol:string;
+  let formattedSymbol: string;
   if (yMarketCode) {
     formattedSymbol = symbolParts.shortSymbol + '.' + yMarketCode;
   } else {
-    formattedSymbol =symbolParts.shortSymbol;
+    formattedSymbol = symbolParts.shortSymbol;
+  }
+
+  // Configure fetch function
+  if (yahooFinanceInstance._opts) {
+    yahooFinanceInstance._opts.fetch = stdFetch as unknown as typeof fetch;
   }
 
   const result = await yahooFinanceInstance.chart(formattedSymbol, opts) as unknown as ChartResultArray;
@@ -155,13 +237,13 @@ export function mergeRecords(
  * @param symbol    Ticker symbol (e.g. "AAPL")
  * @param startDate Start date string (ISO format, e.g. "2024-01-01")
  * @param endDate   Optional end date string (ISO format). Defaults to today.
- * @returns StockHistory with daily price records for the requested interval
+ * @returns AssetHistory with daily price records for the requested interval
  */
-export async function getStockHistory(
+export async function getAssetHistory(
   symbol: string,
   startDate: string,
   endDate?: string,
-): Promise<StockHistory> {
+): Promise<AssetHistory> {
   try {
     const now = new Date();
     const todayStr = toDateStr(now);

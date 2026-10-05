@@ -17,7 +17,7 @@ import {
 import { xetrQuoteProvider } from './xetr-quote-provider';
 import { xlonQuoteProvider } from './xlon-quote-provider';
 import { yFinanceQuoteProvider } from './yfinance-quote-provider';
-import { adjustWeekendToFriday, getStockHistory, toDateStr } from './stock-history-provider';
+import { adjustWeekendToFriday, getAssetHistory, toDateStr } from './asset-history-provider';
 
 interface QuoteProviderSymbols {
   provider: QuoteProvider;
@@ -72,12 +72,12 @@ export class AssetQuoteRequestHandler {
   }
 
   /**
-   * Handle HTTP request for stock historical prices
+   * Handle HTTP request for asset historical prices
    */
-  stockHistoryRequest = async (req: Request, res: Response) => {
+  assetHistoryRequest = async (req: Request, res: Response) => {
     if (req.body.symbols && req.body.symbols.length && req.body.startDate) {
       try {
-        logger.debug(`HTTP Request (stock history): ${JSON.stringify(req.body)}`);
+        logger.debug(`HTTP Request (asset history): ${JSON.stringify(req.body)}`);
         const symbols: string[] = req.body.symbols;
         let startDate: string = req.body.startDate;
         let endDate: string | undefined = req.body.endDate;
@@ -96,13 +96,13 @@ export class AssetQuoteRequestHandler {
         }
 
         const promises = symbols.map((symbol: string) =>
-          getStockHistory(symbol.trim().toUpperCase(), startDate, endDate),
+          getAssetHistory(symbol.trim().toUpperCase(), startDate, endDate),
         );
         const results = await Promise.all(promises);
 
-        logger.debug(`HTTP Response (stock history): ${JSON.stringify(results)}`);
+        logger.debug(`HTTP Response (asset history): ${JSON.stringify(results)}`);
         res.json(results);
-      } catch (e) {
+      } catch (e: any) {
         res.status(500).json({ code: 500, message: 'Generic error' });
         logger.error(e.stack);
       }
@@ -157,7 +157,7 @@ export class AssetQuoteRequestHandler {
       symbol = symbol.trim().toUpperCase();
       const symbolParts = parseSymbol(symbol);
       if (symbolParts.shortSymbol !== '' && symbolParts.shortSymbol.match(SYMBOL_PATTERN)) {
-        let quoteProvider: QuoteProvider = null;
+        let quoteProvider: QuoteProvider | null = null;
         if (symbolParts.marketCode !== '') {
           quoteProvider = quoteProviderService.getQuoteProvider(symbolParts.marketCode);
         }
@@ -193,7 +193,7 @@ export class AssetQuoteRequestHandler {
         if (quoteProvider) {
           // check cache first
           const cacheKey = quoteProvider.getId() + '_' + symbolParts.marketCode + '_' + symbolParts.shortSymbol;
-          const cachedAsset: Asset = this.cache.get(cacheKey);
+          const cachedAsset: Asset | undefined = this.cache.get(cacheKey);
           if (cachedAsset) {
             // create a copy of the asset to replace stored symbol with user provided one
             const asset = Object.assign({}, cachedAsset);
@@ -283,7 +283,7 @@ export class AssetQuoteRequestHandler {
         const quotes = await this.getQuotes(req.body.symbols, assetType);
         logger.debug(`HTTP Response: ${JSON.stringify(quotes)}`);
         res.json(quotes);
-      } catch (e) {
+      } catch (e: any) {
         if (e instanceof QuoteError) {
           res.status(500).json({ code: 500, message: e.message });
           logger.debug(e.stack);

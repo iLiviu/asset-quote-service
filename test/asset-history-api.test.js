@@ -7,9 +7,9 @@ const {
   _clearCache,
   _setYahooFinance,
   _resetYahooFinance,
-} = require('../dist/controllers/stock-history-provider');
+} = require('../dist/controllers/asset-history-provider');
 
-test('HTTP API: POST /stock/history endpoint tests', async (t) => {
+test('HTTP API: POST /history endpoint tests', async (t) => {
   let server;
   let baseUrl;
 
@@ -67,8 +67,8 @@ test('HTTP API: POST /stock/history endpoint tests', async (t) => {
     _setYahooFinance(mockYahoo);
   });
 
-  await t.test('POST /stock/history returns 200 with historical quotes for valid request', async () => {
-    const res = await fetch(`${baseUrl}/stock/history`, {
+  await t.test('POST /history returns 200 with historical quotes for valid request', async () => {
+    const res = await fetch(`${baseUrl}/history`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -91,8 +91,8 @@ test('HTTP API: POST /stock/history endpoint tests', async (t) => {
     assert.strictEqual(data[1].currency, 'USD');
   });
 
-  await t.test('POST /stock/history supports optional endDate parameter', async () => {
-    const res = await fetch(`${baseUrl}/stock/history`, {
+  await t.test('POST /history supports optional endDate parameter', async () => {
+    const res = await fetch(`${baseUrl}/history`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -109,9 +109,9 @@ test('HTTP API: POST /stock/history endpoint tests', async (t) => {
     assert.strictEqual(data[0].history.length, 1);
   });
 
-  await t.test('POST /stock/history automatically adjusts weekend endDate to preceding Friday', async () => {
+  await t.test('POST /history automatically adjusts weekend endDate to preceding Friday', async () => {
     // 2025-06-07 is Saturday -> adjusted to Friday 2025-06-06
-    const res = await fetch(`${baseUrl}/stock/history`, {
+    const res = await fetch(`${baseUrl}/history`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -128,9 +128,9 @@ test('HTTP API: POST /stock/history endpoint tests', async (t) => {
     assert.ok(data[0].history.length > 0);
   });
 
-  await t.test('POST /stock/history automatically adjusts weekend startDate to preceding Friday', async () => {
+  await t.test('POST /history automatically adjusts weekend startDate to preceding Friday', async () => {
     // 2025-06-07 is Saturday -> adjusted to Friday 2025-06-06
-    const res = await fetch(`${baseUrl}/stock/history`, {
+    const res = await fetch(`${baseUrl}/history`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -146,8 +146,8 @@ test('HTTP API: POST /stock/history endpoint tests', async (t) => {
     assert.strictEqual(data[0].symbol, 'AAPL');
   });
 
-  await t.test('POST /stock/history returns 400 when startDate is missing', async () => {
-    const res = await fetch(`${baseUrl}/stock/history`, {
+  await t.test('POST /history returns 400 when startDate is missing', async () => {
+    const res = await fetch(`${baseUrl}/history`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -161,8 +161,8 @@ test('HTTP API: POST /stock/history endpoint tests', async (t) => {
     assert.strictEqual(body.message, 'Invalid request');
   });
 
-  await t.test('POST /stock/history returns 400 when symbols parameter is missing', async () => {
-    const res = await fetch(`${baseUrl}/stock/history`, {
+  await t.test('POST /history returns 400 when symbols parameter is missing', async () => {
+    const res = await fetch(`${baseUrl}/history`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -176,8 +176,8 @@ test('HTTP API: POST /stock/history endpoint tests', async (t) => {
     assert.strictEqual(body.message, 'Invalid request');
   });
 
-  await t.test('POST /stock/history returns 400 when symbols array is empty', async () => {
-    const res = await fetch(`${baseUrl}/stock/history`, {
+  await t.test('POST /history returns 400 when symbols array is empty', async () => {
+    const res = await fetch(`${baseUrl}/history`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -192,8 +192,8 @@ test('HTTP API: POST /stock/history endpoint tests', async (t) => {
     assert.strictEqual(body.message, 'Invalid request');
   });
 
-  await t.test('POST /stock/history handles individual symbol errors gracefully without failing request', async () => {
-    const res = await fetch(`${baseUrl}/stock/history`, {
+  await t.test('POST /history handles individual symbol errors gracefully without failing request', async () => {
+    const res = await fetch(`${baseUrl}/history`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
