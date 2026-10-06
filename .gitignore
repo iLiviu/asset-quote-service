@@ -39,3 +39,4 @@ Thumbs.db
 #app specific
 error.log
 config.ts
+data

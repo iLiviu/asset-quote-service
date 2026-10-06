@@ -1,11 +1,14 @@
+import fs from 'fs';
+import type { IncomingMessage, RequestOptions } from 'http';
+import https from 'https';
+import path from 'path';
 import YahooFinance from 'yahoo-finance2';
 import { ChartResultArray } from 'yahoo-finance2/esm/src/modules/chart';
-import https from 'node:https';
-import type { RequestOptions, IncomingMessage } from 'node:http';
 
+import { CONFIG } from '../config';
 import logger from '../logger';
-import { parseSymbol } from './quote-provider';
 import { YAHOO_EXCHANGE_CODES } from '../shared/yfinance.consts';
+import { parseSymbol } from './quote-provider';
 
 let yahooFinanceInstance = new YahooFinance();
 
@@ -18,7 +21,7 @@ export function _resetYahooFinance() {
 }
 
 export interface HistoricalPriceRecord {
-  date: Date;
+  date: string;  // ISO date string (YYYY-MM-DD)
   price: number | null;
 }
 
@@ -49,6 +52,108 @@ export function _getCache(): Map<string, CachedHistory> {
   return historyCache;
 }
 
+/**
+ * Loads historic quotes for symbols from JSON files located in the "data/history" folder (or custom dir)
+ * and populates the "historyCache" in-memory cache.
+ * Each file contains the history for 1 symbol only in the AssetHistory format.
+ * Useful when Yahoo Finance API does not return the full history for a symbol.
+ *
+ * @param dirPath Optional custom directory path (defaults to CONFIG.HISTORY_DATA_DIR / "data/history")
+ * @returns Number of symbol files successfully loaded into historyCache
+ */
+export function loadHistoryFromFiles(dirPath?: string): number {
+  const targetDir = dirPath
+    || (CONFIG.HISTORY_DATA_DIR && fs.existsSync(path.resolve(process.cwd(), CONFIG.HISTORY_DATA_DIR))
+      ? path.resolve(process.cwd(), CONFIG.HISTORY_DATA_DIR)
+      : (fs.existsSync(path.resolve(process.cwd(), 'data/history'))
+        ? path.resolve(process.cwd(), 'data/history')
+        : path.resolve(__dirname, '../../data/history')));
+
+  if (!fs.existsSync(targetDir)) {
+    logger.debug(`[history-cache] History directory ${targetDir} does not exist. Skipping file load.`);
+    return 0;
+  }
+
+  let loadedCount = 0;
+  try {
+    const entries = fs.readdirSync(targetDir);
+    for (const entry of entries) {
+      if (entry.startsWith('.')) {
+        continue;
+      }
+      const fullPath = path.join(targetDir, entry);
+      let stat: fs.Stats;
+      try {
+        stat = fs.statSync(fullPath);
+      } catch (e) {
+        continue;
+      }
+      if (!stat.isFile()) {
+        continue;
+      }
+
+      try {
+        const rawContent = fs.readFileSync(fullPath, 'utf8');
+        const assetHistory: AssetHistory = JSON.parse(rawContent);
+        if (!assetHistory || typeof assetHistory !== 'object') {
+          logger.warn(`[history-cache] File ${entry} did not contain a valid JSON object.`);
+          continue;
+        }
+
+        const symbol = (assetHistory.symbol || path.parse(entry).name).trim().toUpperCase();
+        if (!symbol) {
+          logger.warn(`[history-cache] File ${entry} has no symbol. Skipping.`);
+          continue;
+        }
+
+        const rawRecords = Array.isArray(assetHistory.history) ? assetHistory.history : [];
+        const records: HistoricalPriceRecord[] = rawRecords
+          .map((r: any) => ({
+            date: r.date instanceof Date
+              ? toDateStr(r.date)
+              : (typeof r.date === 'string' ? r.date.split('T')[0] : String(r.date)),
+            price: r.price !== undefined ? r.price : null,
+          }))
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        const deduplicatedRecords = mergeRecords([], records);
+
+        const cachedStartDate = (assetHistory as any).cachedStartDate
+          || (deduplicatedRecords.length > 0 ? deduplicatedRecords[0].date : '');
+        const cachedEndDate = (assetHistory as any).cachedEndDate !== undefined
+          ? (assetHistory as any).cachedEndDate
+          : (deduplicatedRecords.length > 0 ? deduplicatedRecords[deduplicatedRecords.length - 1].date : undefined);
+
+        const cachedData: CachedHistory = {
+          currency: assetHistory.currency,
+          records: deduplicatedRecords,
+          cachedStartDate,
+          cachedEndDate,
+          lastFetched: new Date(cachedEndDate),
+        };
+
+        historyCache.set(symbol, cachedData);
+        if (assetHistory.symbol && assetHistory.symbol !== symbol) {
+          historyCache.set(assetHistory.symbol, cachedData);
+        }
+        loadedCount++;
+        logger.info(`[history-cache] Loaded history for ${symbol} (${deduplicatedRecords.length} records) from ${entry}`);
+      } catch (fileErr: any) {
+        logger.warn(`[history-cache] Failed to parse history file ${entry}: ${fileErr.message}`);
+      }
+    }
+  } catch (dirErr: any) {
+    logger.error(`[history-cache] Failed to read history directory ${targetDir}: ${dirErr.message}`);
+  }
+
+  return loadedCount;
+}
+
+export const loadHistoryFromDirectory = loadHistoryFromFiles;
+
+// Automatically populate historyCache from files at startup
+loadHistoryFromFiles();
+
 export interface StdFetchOptions {
   method?: string;
   headers?: Record<string, string | string[] | undefined>;
@@ -71,7 +176,7 @@ export interface StdFetchResponse {
  */
 export function stdFetch(
   url: string | URL,
-  options: StdFetchOptions = {}
+  options: StdFetchOptions = {},
 ): Promise<StdFetchResponse> {
   return new Promise((resolve, reject) => {
     const targetUrl = typeof url === 'string' ? new URL(url) : url;
@@ -163,7 +268,7 @@ async function fetchFromYahoo(
   const result = await yahooFinanceInstance.chart(formattedSymbol, opts) as unknown as ChartResultArray;
 
   const records: HistoricalPriceRecord[] = result.quotes.map((q) => ({
-    date: q.date,
+    date: toDateStr(q.date),
     price: q.close ? q.close : q.open,
   }));
 
@@ -213,10 +318,10 @@ export function mergeRecords(
 ): HistoricalPriceRecord[] {
   const map = new Map<string, HistoricalPriceRecord>();
   for (const r of a) {
-    map.set(toDateStr(new Date(r.date)), r);
+    map.set(r.date, r);
   }
   for (const r of b) {
-    map.set(toDateStr(new Date(r.date)), r); // b overwrites a on duplicate dates
+    map.set(r.date, r); // b overwrites a on duplicate dates
   }
   return Array.from(map.values()).sort(
     (x, y) => new Date(x.date).getTime() - new Date(y.date).getTime(),
@@ -263,7 +368,8 @@ export async function getAssetHistory(
       endDateStr = adjustWeekendToFriday(todayStr);
     }
 
-    const cached = historyCache.get(symbol);
+    const cleanSymbol = symbol.trim().toUpperCase();
+    const cached = historyCache.get(cleanSymbol) || historyCache.get(symbol);
 
     let allRecords: HistoricalPriceRecord[];
     let currency: string | undefined;
@@ -345,17 +451,21 @@ export async function getAssetHistory(
     }
 
     // Persist to cache
-    historyCache.set(symbol, {
+    const cacheEntry: CachedHistory = {
       currency,
       records: allRecords,
       cachedStartDate: newCachedStartDate,
       cachedEndDate: newCachedEndDate,
       lastFetched: new Date(),
-    });
+    };
+    historyCache.set(cleanSymbol, cacheEntry);
+    if (cleanSymbol !== symbol) {
+      historyCache.set(symbol, cacheEntry);
+    }
 
     // Filter output to requested interval
     const trimmed = allRecords.filter((r) => {
-      const dStr = toDateStr(new Date(r.date));
+      const dStr = r.date;
       if (dStr < startDateStr) {
         return false;
       }

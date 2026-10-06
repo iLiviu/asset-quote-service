@@ -72,12 +72,12 @@ test('Unit: Date utilities and record merging', async (t) => {
 
   await t.test('mergeRecords merges two non-overlapping arrays in sorted date order', () => {
     const a = [
-      { date: new Date('2025-01-01T13:30:00.000Z'), price: 100 },
-      { date: new Date('2025-01-02T13:30:00.000Z'), price: 101 },
+      { date: '2025-01-01', price: 100 },
+      { date: '2025-01-02', price: 101 },
     ];
     const b = [
-      { date: new Date('2025-01-03T13:30:00.000Z'), price: 102 },
-      { date: new Date('2025-01-04T13:30:00.000Z'), price: 103 },
+      { date: '2025-01-03', price: 102 },
+      { date: '2025-01-04', price: 103 },
     ];
 
     const merged = mergeRecords(a, b);
@@ -88,12 +88,12 @@ test('Unit: Date utilities and record merging', async (t) => {
 
   await t.test('mergeRecords deduplicates overlapping dates and gives priority to fresher records (array b)', () => {
     const a = [
-      { date: new Date('2025-01-01T13:30:00.000Z'), price: 100 },
-      { date: new Date('2025-01-02T13:30:00.000Z'), price: 101 },
+      { date: '2025-01-01', price: 100 },
+      { date: '2025-01-02', price: 101 },
     ];
     const b = [
-      { date: new Date('2025-01-02T13:30:00.000Z'), price: 105 }, // updated price on boundary
-      { date: new Date('2025-01-03T13:30:00.000Z'), price: 106 },
+      { date: '2025-01-02', price: 105 }, // updated price on boundary
+      { date: '2025-01-03', price: 106 },
     ];
 
     const merged = mergeRecords(a, b);
@@ -102,7 +102,7 @@ test('Unit: Date utilities and record merging', async (t) => {
   });
 
   await t.test('mergeRecords handles empty arrays', () => {
-    const a = [{ date: new Date('2025-01-01T13:30:00.000Z'), price: 100 }];
+    const a = [{ date: '2025-01-01', price: 100 }];
     assert.strictEqual(mergeRecords([], a).length, 1);
     assert.strictEqual(mergeRecords(a, []).length, 1);
     assert.strictEqual(mergeRecords([], []).length, 0);
