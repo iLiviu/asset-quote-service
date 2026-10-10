@@ -1,5 +1,8 @@
 import axios from 'axios';
+import dateFormat from "dateformat";
+
 import EventSource from 'eventsource';
+import { createHash, randomUUID } from "node:crypto";
 
 import logger from '../logger';
 import { Dictionary } from '../models/dictionary';
@@ -19,6 +22,9 @@ interface InstrumentInformation {
 interface PriceInformation {
   isin: string;
   lastPrice: number;
+  currency: {
+    originalValue: string;
+  }
 }
 
 interface ETPWidgetData {
@@ -39,10 +45,70 @@ interface WidgetResponse {
 }
 
 interface SecurityInfo {
-  isin: string;
-  info: InstrumentInformation;
-  etpInfo: ETPWidgetData;
-  bondInfo: BondWidgetData;
+  isin: string | undefined;
+}
+
+interface SecurityHeaders {
+  "Client-Date": string;
+  "X-Client-TraceId": string;
+  "X-Security": string;
+}
+
+interface SecurityHeaderOptions {
+  /**
+   * The client salt/secret defined in environment/security bundle.
+   * Default fallback is Börse Frankfurt's standard public front-end salt.
+   */
+  salt?: string;
+  /**
+   * Optional custom timestamp (defaults to new Date())
+   */
+  date?: Date;
+  /**
+   * Optional custom trace UUID
+   */
+  traceId?: string;
+}
+
+/**
+ * Generates the security headers required by Boerse Frankfurt API endpoints.
+ * Node.js variant using `node:crypto`.
+ */
+export function generateBoerseSecurityHeaders(
+  options: SecurityHeaderOptions = {}
+): SecurityHeaders {
+  const date = options.date ?? new Date();
+  const clientDate = (date).toISOString();
+  const traceId = options.traceId ?? randomUUID();
+  const salt = options.salt ?? 'af5a8d16eb5dc49f8a72b26fd9185475c7a'
+
+  // Digest pattern: MD5(Client-Date + Salt) or MD5(Client-Date + TraceId + Salt)
+  // Börse Frankfurt's Angular frontend builds the signature payload:
+  const payload = `${clientDate}${traceId}${salt}`;
+  const clientTraceId = createHash("md5").update(payload, "utf8").digest("hex");
+  const xSecurity = createHash("md5").update(dateFormat(date, "yyyyMMddHHmm")).digest("hex");
+
+  return {
+    "Client-Date": clientDate,
+    "X-Client-TraceId": clientTraceId,
+    "X-Security": xSecurity
+  };
+}
+
+function boerseAPIRequest(url: string): Promise<any> {
+
+  const headers = generateBoerseSecurityHeaders({
+    date: new Date(),
+    traceId: url,
+  });
+  return axios.get(url, {
+    headers: {
+      "Client-Date": headers['Client-Date'],
+      "X-Security": headers['X-Security'],
+      "X-Client-TraceId": headers['X-Client-TraceId'],
+    }
+  });
+
 }
 
 /**
@@ -103,10 +169,7 @@ export class XETRQuoteProvider implements QuoteProvider {
       let security = this.cachedInfos[fullSymbol];
       if (!security) {
         security = {
-          bondInfo: null,
-          etpInfo: null,
-          info: null,
-          isin: null,
+          isin: undefined,
         };
         this.cachedInfos[fullSymbol] = security;
       }
@@ -116,7 +179,7 @@ export class XETRQuoteProvider implements QuoteProvider {
           security.isin = symbolParts.shortSymbol;
         } else {
           // we need to find the asset's ISIN
-          const searchResponse = await axios.get('https://api.boerse-frankfurt.de/global_search/limitedsearch/en?searchTerms=' +
+          const searchResponse = await boerseAPIRequest('https://api.live.deutsche-boerse.com/v1/global_search/limitedsearch/en?searchTerms=' +
             symbolParts.shortSymbol);
           const results: XETRSearchResult[][] = searchResponse.data;
           if (results.length > 0 && results[0].length > 0) {
@@ -125,63 +188,43 @@ export class XETRQuoteProvider implements QuoteProvider {
         }
       }
       if (security.isin) {
-        if (!security.info) {
-          const response = await axios.get('https://api.boerse-frankfurt.de/composite/multiple_widget?' +
-            'widgetUris=/data/instrument_information%3Fisin%3D' + security.isin +
-            '&widgetUris=/data/etp_master_data%3Fisin%3D' + security.isin +
-            '&widgetUris=%2Fdata%2Fmaster_data_bond%3Fisin%3D' + security.isin);
-          const widgets = response.data;
-          const infoWidget: WidgetResponse = widgets['/data/instrument_information?isin=' + security.isin];
-          security.info = infoWidget.data;
-          const etpInfoWidget: WidgetResponse = widgets['/data/etp_master_data?isin=' + security.isin];
-          if (etpInfoWidget.statusCode === 2000) {
-            security.etpInfo = etpInfoWidget.data;
-          }
-          const bondInfoWidget: WidgetResponse = widgets['/data/master_data_bond?isin=' + security.isin];
-          if (bondInfoWidget.statusCode === 200) {
-            security.bondInfo = bondInfoWidget.data;
-          }
-        }
-
-        if (security.info && security.info.defaultMic) {
-          const pricePromise = new Promise<PriceInformation>((resolve, reject) => {
-            const eventSource = new EventSource('https://api.boerse-frankfurt.de/data/price_information?' +
-              'isin=' + security.isin +
-              '&mic=' + security.info.defaultMic);
-            eventSource.addEventListener('message', (event: any) => {
-              const pInfo: PriceInformation = JSON.parse(event.data);
-              eventSource.close();
-              resolve(pInfo);
-            });
-            eventSource.addEventListener('error', (event: any) => {
-              eventSource.close();
-              reject(event);
-            });
+        const pricePromise = new Promise<PriceInformation>((resolve, reject) => {
+          const eventSource = new EventSource('https://api.live.deutsche-boerse.com/v1/data/price_information?' +
+            'isin=' + security.isin
+            //              '&mic=' + security.info.defaultMic
+          );
+          eventSource.addEventListener('message', (event: any) => {
+            const pInfo: PriceInformation = JSON.parse(event.data);
+            eventSource.close();
+            resolve(pInfo);
           });
-          const priceInfo = await pricePromise;
+          eventSource.addEventListener('error', (event: any) => {
+            eventSource.close();
+            reject(event);
+          });
+        });
+        const priceInfo = await pricePromise;
 
-          if (priceInfo) {
-            if (priceInfo.lastPrice) {
-              price = priceInfo.lastPrice;
-            }
-            if (price) {
-              let currency = 'EUR';
-              if (security.etpInfo) {
-                currency = security.etpInfo.tradingCurrency;
-              } else if (security.bondInfo) {
-                currency = security.bondInfo.issueCurrency;
-              }
-
-              return {
-                currency,
-                percentPrice: assetType === AssetType.BOND,
-                price,
-                symbol: fullSymbol,
-              };
-            }
+        if (priceInfo) {
+          if (priceInfo.lastPrice) {
+            price = priceInfo.lastPrice;
           }
+          if (price) {
+            let currency = 'EUR';
+            if (priceInfo?.currency?.originalValue) {
+              currency = priceInfo.currency.originalValue;
+            } 
 
+            return {
+              currency,
+              percentPrice: assetType === AssetType.BOND,
+              price,
+              symbol: fullSymbol,
+            };
+          }
         }
+
+
       }
     } catch (err) {
       logger.error(`Could not get quote for symbol "${fullSymbol}": ${err}`);
