@@ -1,7 +1,6 @@
 import bodyParser from 'body-parser';
 import compression from 'compression';
 import express from 'express';
-import expressValidator from 'express-validator';
 
 import { CONFIG } from './config';
 import { AssetQuoteRequestHandler } from './controllers/asset-quote-request-handler';
@@ -23,7 +22,6 @@ app.set('port', process.env.PORT || CONFIG.DEFAULT_HTTP_PORT);
 app.set('httpsport', process.env.HTTPSPORT || CONFIG.DEFAULT_HTTPS_PORT);
 app.use(compression());
 app.use(bodyParser.json());
-app.use(expressValidator());
 app.use(allowCrossDomain);
 
 // routes
