@@ -7,15 +7,12 @@ import { Dictionary } from '../models/dictionary';
 import { binanceQuoteProvider } from './binance-quote-provider';
 import { bvbQuoteProvider } from './bvb-quote-provider';
 import { cmeQuoteProvider } from './cme-quote-provider';
-import { coinbaseQuoteProvider } from './coinbase-quote-provider';
 import { fixerQuoteProvider } from './fixer-quote-provider';
 import { ftQuoteProvider } from './ft-quote-provider';
-import { morningstarQuoteProvider } from './morningstar-quote-provider';
 import {
   Asset, AssetType, AssetTypeNotSupportedError, isValidISIN, isValidMIC, parseSymbol, QuoteError, QuoteProvider, quoteProviderService,
 } from './quote-provider';
 import { xetrQuoteProvider } from './xetr-quote-provider';
-import { xlonQuoteProvider } from './xlon-quote-provider';
 import { yFinanceQuoteProvider } from './yfinance-quote-provider';
 import { adjustWeekendToFriday, getAssetHistory, toDateStr } from './asset-history-provider';
 
@@ -299,12 +296,9 @@ export class AssetQuoteRequestHandler {
   }
 }
 
-quoteProviderService.registerQuoteProvider(coinbaseQuoteProvider);
 quoteProviderService.registerQuoteProvider(binanceQuoteProvider);
 quoteProviderService.registerQuoteProvider(cmeQuoteProvider);
 quoteProviderService.registerQuoteProvider(xetrQuoteProvider);
 quoteProviderService.registerQuoteProvider(bvbQuoteProvider);
-quoteProviderService.registerQuoteProvider(xlonQuoteProvider);
-quoteProviderService.registerQuoteProvider(morningstarQuoteProvider);
 quoteProviderService.registerQuoteProvider(ftQuoteProvider);
 quoteProviderService.registerQuoteProvider(yFinanceQuoteProvider);

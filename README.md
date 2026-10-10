@@ -5,20 +5,15 @@ Asset Quote Service gets the prices for a list of specified assets. It currently
 ## Supported exchanges
 Below is a list of all implemented providers and the markets that they support
 
-| Provider                  | Markets                 |
-|---------------------------|:-----------------------:|
-| Binance                   | Cryptocurrencies        |
-| Boerse Frankfurt          | XETR Stocks, Intl Bonds |
-| Boerse Stuttgart          | XSTU Stocks, Intl Bonds |
-| Bursa de Valori Bucuresti | Romanian Stocks & Bonds |
-| CME                       | Commodity futures       |
-| Coinbase                  | Cryptocurrencies        |
-| Financial Times           | Mutual Funds            |
-| Fixer.io                  | Forex rates             |
-| IEX                       | US Stocks               |
-| London Stock Exchange     | XLON Stocks             |
-| Morningstar               | Intl Stocks             |
-| Yahoo Finance             | Intl Stocks             |
+| Provider                  | Markets                       |
+|---------------------------|:-----------------------------:|
+| Binance                   | Cryptocurrencies              |
+| Boerse Frankfurt          | Intl Bonds                    |
+| Bursa de Valori Bucuresti | Romanian Stocks & Bonds       |
+| CME                       | Commodity futures             |
+| Financial Times           | Mutual Funds                  |
+| Fixer.io                  | Forex rates                   |
+| Yahoo Finance             | Intl Stocks, Historical quotes|
 
 
 ## Installation & Deployment
@@ -105,7 +100,7 @@ POST /commodity
 ``` 
 
 ### Cryptocurrencies
-Get quotes for cryptocurrencies. Symbol format is `<SYMBOL>` or `<EXCHANGE>:<SYMBOL>`, where EXCHANGE can be one of the following: `IEX`, `COINBASE` or `BINANCE`
+Get quotes for cryptocurrencies. Symbol format is `<SYMBOL>` 
 ```
 POST /crypto
 ```
