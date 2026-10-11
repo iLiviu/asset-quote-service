@@ -1,4 +1,4 @@
-## Master
+## 1.3.0 (2026-10-11)
 ## Improvements
 * Increase Fixer cache TTL to avoid hitting new API limit
 ### Bug fixes
