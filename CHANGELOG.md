@@ -5,6 +5,7 @@
 * Fix getting a cached quote when exchange identifier is different
 * fix getting quotes for XBSE/AERO
 * fix getting bond quotes using XETR
+* fix getting commodity quotes
 
 ## 1.2.2 (2021-04-12)
 ### Features

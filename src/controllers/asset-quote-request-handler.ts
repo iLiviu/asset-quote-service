@@ -6,7 +6,6 @@ import logger from '../logger';
 import { Dictionary } from '../models/dictionary';
 import { binanceQuoteProvider } from './binance-quote-provider';
 import { bvbQuoteProvider } from './bvb-quote-provider';
-import { cmeQuoteProvider } from './cme-quote-provider';
 import { fixerQuoteProvider } from './fixer-quote-provider';
 import { ftQuoteProvider } from './ft-quote-provider';
 import {
@@ -171,7 +170,7 @@ export class AssetQuoteRequestHandler {
           } else if (assetType === AssetType.BOND) {
             quoteProvider = xetrQuoteProvider;
           } else if (assetType === AssetType.COMMODITY) {
-            quoteProvider = cmeQuoteProvider;
+            quoteProvider = yFinanceQuoteProvider;
           } else if (assetType === AssetType.CRYPTOCURRENCY) {
             quoteProvider = binanceQuoteProvider;
           } else if (assetType === AssetType.FOREX) {
@@ -297,7 +296,6 @@ export class AssetQuoteRequestHandler {
 }
 
 quoteProviderService.registerQuoteProvider(binanceQuoteProvider);
-quoteProviderService.registerQuoteProvider(cmeQuoteProvider);
 quoteProviderService.registerQuoteProvider(xetrQuoteProvider);
 quoteProviderService.registerQuoteProvider(bvbQuoteProvider);
 quoteProviderService.registerQuoteProvider(ftQuoteProvider);

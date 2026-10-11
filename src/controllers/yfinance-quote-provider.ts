@@ -10,6 +10,7 @@ import {
   Asset, AssetType, AssetTypeNotSupportedError, isValidISIN, mapStringKeyValues, parseSymbol, QuoteProvider,
 } from './quote-provider';
 import { YAHOO_EXCHANGE_CODES } from '../shared/yfinance.consts';
+import { COMMODITY_CODES } from '../shared/commodity';
 
 
 
@@ -58,6 +59,13 @@ export class YFinanceQuoteProvider implements QuoteProvider {
       const symbolParts = parseSymbol(fullSymbol);
       if (assetsType === AssetType.BOND && isValidISIN(symbolParts.shortSymbol)) {
         formattedSymbols.push(symbolParts.shortSymbol + '.SG');
+      } else if (assetsType === AssetType.COMMODITY) {
+        let symbol = symbolParts.shortSymbol.toUpperCase();
+        const commoditySymbol = COMMODITY_CODES[symbol];
+        if (commoditySymbol) {
+          symbol = commoditySymbol.symbol;
+        }
+        formattedSymbols.push(symbol+'=F');
       } else {
         const yMarketCode = YAHOO_EXCHANGE_CODES[symbolParts.marketCode];
         if (yMarketCode) {
@@ -165,7 +173,7 @@ export class YFinanceQuoteProvider implements QuoteProvider {
   }
 
   getCommodityQuotes(symbols: string[]): Promise<Asset[]> {
-    throw new AssetTypeNotSupportedError(AssetType.COMMODITY);
+    return this.getAssetQuotes(symbols, AssetType.COMMODITY);
   }
 
   getForexQuotes(symbols: string[]): Promise<Asset[]> {

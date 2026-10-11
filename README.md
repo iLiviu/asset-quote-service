@@ -5,15 +5,14 @@ Asset Quote Service gets the prices for a list of specified assets. It currently
 ## Supported exchanges
 Below is a list of all implemented providers and the markets that they support
 
-| Provider                  | Markets                       |
-|---------------------------|:-----------------------------:|
-| Binance                   | Cryptocurrencies              |
-| Boerse Frankfurt          | Intl Bonds                    |
-| Bursa de Valori Bucuresti | Romanian Stocks & Bonds       |
-| CME                       | Commodity futures             |
-| Financial Times           | Mutual Funds                  |
-| Fixer.io                  | Forex rates                   |
-| Yahoo Finance             | Intl Stocks, Historical quotes|
+| Provider                  | Markets                                   |
+|---------------------------|:-----------------------------------------:|
+| Binance                   | Cryptocurrencies                          |
+| Boerse Frankfurt          | Intl Bonds                                |
+| Bursa de Valori Bucuresti | Romanian Stocks & Bonds                   |
+| Financial Times           | Mutual Funds                              |
+| Fixer.io                  | Forex rates                               |
+| Yahoo Finance             | Intl Stocks,Commodities, Historical quotes|
 
 
 ## Installation & Deployment
